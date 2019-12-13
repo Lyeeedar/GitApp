@@ -15,7 +15,7 @@ namespace GitApp
 		{
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { error.AppendLine(line); });
+			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { error.AppendLine(line); }, null);
 
 			if (error.Length > 0)
 			{
