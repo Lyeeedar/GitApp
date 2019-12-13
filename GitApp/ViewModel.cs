@@ -428,13 +428,27 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void Push()
 		{
-			ProcessUtils.ExecuteCmdBlocking("git push", CurrentDirectory);
+			try
+			{
+				ProcessUtils.ExecuteCmdBlocking("git push", CurrentDirectory);
+			}
+			catch (Exception ex)
+			{
+				Message.Show(ex.Message, "Push failed");
+			}
 		}
 
 		//-----------------------------------------------------------------------
 		public void Pull()
 		{
-			ProcessUtils.ExecuteCmdBlocking("git pull --rebase", CurrentDirectory);
+			try
+			{
+				ProcessUtils.ExecuteCmdBlocking("git pull --rebase", CurrentDirectory);
+			}
+			catch (Exception ex)
+			{
+				Message.Show(ex.Message, "Pull failed");
+			}
 		}
 
 		//-----------------------------------------------------------------------
