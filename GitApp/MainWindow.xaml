@@ -89,6 +89,70 @@
 				</DockPanel>
 			</Border>
 
+			<TabControl
+				Grid.Row="1">
+				<TabItem
+					Header="Changes">
+					<DockPanel>
+						<DockPanel
+							Margin="6,5,0,5"
+							DockPanel.Dock="Top">
+							<CheckBox
+								DockPanel.Dock="Left"
+								IsChecked="{Binding ChangeMultiSelect, Mode=TwoWay}" />
+							<TextBlock
+								HorizontalAlignment="Center"
+								Text="{Binding ChangeList.Count, StringFormat={}{0} Changes}" />
+						</DockPanel>
+
+						<Button
+							IsEnabled="{Binding CanCommit}"
+							DockPanel.Dock="Bottom"
+							Content="Commit changes"
+							Command="{Binding CommitCMD}"/>
+
+						<local:MultilineTextEditor
+							DockPanel.Dock="Bottom"
+							Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+						<ListView
+							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
+							ItemsSource="{Binding ChangeList}">
+							<ListBox.ItemContainerStyle>
+								<Style
+									TargetType="{x:Type ListViewItem}"
+									BasedOn="{StaticResource {x:Type ListViewItem}}">
+									<Setter
+										Property="HorizontalContentAlignment"
+										Value="Stretch" />
+								</Style>
+							</ListBox.ItemContainerStyle>
+							<ListView.ItemTemplate>
+								<DataTemplate>
+									<DockPanel
+										Margin="3">
+										<CheckBox
+											VerticalAlignment="Center"
+											DockPanel.Dock="Left"
+											IsChecked="{Binding Added}" />
+										<TextBlock
+											DockPanel.Dock="Right"
+											Text="{Binding ChangeType}"
+											Opacity="0.7" />
+										<TextBlock
+											Text="{Binding File}" />
+									</DockPanel>
+								</DataTemplate>
+							</ListView.ItemTemplate>
+						</ListView>
+					</DockPanel>
+				</TabItem>
+				<TabItem
+					Header="History">
+					
+				</TabItem>
+			</TabControl>
+
 			<GridSplitter
 				Background="{StaticResource WindowBackgroundLightBrush}"
 				Grid.Column="1"
@@ -122,11 +186,41 @@
 							CornerRadius="10"
 							DockPanel.Dock="Right"
 							VerticalAlignment="Center"
+							Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 							Background="{StaticResource BackgroundLightBrush}">
-							<TextBlock
-								Margin="15,5,15,5"
-								VerticalAlignment="Center"
-								Text="{Binding NumberCommitsToPull}" />
+							<StackPanel
+								Orientation="Horizontal">
+								<TextBlock
+									Margin="15,5,5,5"
+									VerticalAlignment="Center"
+									Text="{Binding NumberCommitsToPush}" />
+								<Image
+									Margin="5,5,15,5"
+									DockPanel.Dock="Left"
+									Source="/Resources/Push.png"
+									Width="8"
+									Height="8" />
+							</StackPanel>
+						</Border>
+						<Border
+							Margin="10"
+							CornerRadius="10"
+							DockPanel.Dock="Right"
+							VerticalAlignment="Center"
+							Background="{StaticResource BackgroundLightBrush}">
+							<StackPanel
+								Orientation="Horizontal">
+								<TextBlock
+									Margin="15,5,5,5"
+									VerticalAlignment="Center"
+									Text="{Binding NumberCommitsToPull}" />
+								<Image
+									Margin="5,5,15,5"
+									DockPanel.Dock="Left"
+									Source="/Resources/Pull.png"
+									Width="8"
+									Height="8" />
+							</StackPanel>
 						</Border>
 						<TextBlock
 							Margin="10"
@@ -137,11 +231,54 @@
 				</Border>
 
 				<Border
+					Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
-					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}}">
+					MouseLeftButtonDown="PushClick">
+					<DockPanel>
+						<Image
+							Margin="10"
+							DockPanel.Dock="Left"
+							Source="/Resources/Push.png"
+							Width="16"
+							Height="16" />
+						<Border
+							Margin="10"
+							CornerRadius="10"
+							DockPanel.Dock="Right"
+							VerticalAlignment="Center"
+							Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+							Background="{StaticResource BackgroundLightBrush}">
+							<StackPanel
+								Orientation="Horizontal">
+								<TextBlock
+									Margin="15,5,5,5"
+									VerticalAlignment="Center"
+									Text="{Binding NumberCommitsToPush}" />
+								<Image
+									Margin="5,5,15,5"
+									DockPanel.Dock="Left"
+									Source="/Resources/Push.png"
+									Width="8"
+									Height="8" />
+							</StackPanel>
+						</Border>
+						<TextBlock
+							Margin="10"
+							VerticalAlignment="Center"
+							FontWeight="Bold"
+							Text="Push" />
+					</DockPanel>
+				</Border>
+
+				<Border
+					Background="{StaticResource BackgroundDarkBrush}"
+					BorderThickness="2"
+					BorderBrush="{StaticResource BorderDarkBrush}"
+					Visibility="{Binding UpToDate, Converter={local:ValueTypeConverter}}">
 					<TextBlock
 						Margin="20"
 						VerticalAlignment="Center"
+						Opacity="0.7"
 						Text="No Changes" />
 				</Border>
 			</Grid>

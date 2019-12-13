@@ -38,6 +38,12 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		private void PushClick(object sender, MouseButtonEventArgs e)
+		{
+			GitViewModel.Push();
+		}
+
+		//-----------------------------------------------------------------------
 		private void ArbitraryCMDKeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.Key == Key.Enter)

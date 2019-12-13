@@ -14,7 +14,13 @@ namespace GitApp
 		public static string ExecuteCmdBlocking(string cmd, string workingDirectory)
 		{
 			var output = new StringBuilder();
-			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { output.AppendLine(line); });
+			var error = new StringBuilder();
+			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { error.AppendLine(line); });
+
+			if (error.Length > 0)
+			{
+				throw new Exception(error.ToString());
+			}
 
 			return output.ToString();
 		}
@@ -32,7 +38,7 @@ namespace GitApp
 					RedirectStandardError = true,
 					UseShellExecute = false,
 					WorkingDirectory = workingDirectory,
-					Arguments = "/c " + cmd
+					Arguments = "cmd /S /C \"" + cmd + "\""
 				};
 
 				System.Timers.Timer timeoutTimer = null;

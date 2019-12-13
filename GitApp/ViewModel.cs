@@ -35,16 +35,33 @@ namespace GitApp
 	}
 
 	//-----------------------------------------------------------------------
-	public class Change
+	public class Change : NotifyPropertyChanged
 	{
+		public ViewModel ViewModel { get; set; }
 		public string File { get; set; }
 		public ChangeType ChangeType { get; set; }
+		public bool Added
+		{
+			get { return m_added; }
+			set
+			{
+				m_added = value;
+				RaisePropertyChangedEvent();
 
-		public Change(string file, ChangeType changeType)
+				ViewModel.RaisePropertyChangedEvent(nameof(ViewModel.ChangeMultiSelect));
+				ViewModel.RaisePropertyChangedEvent(nameof(ViewModel.CanCommit));
+			}
+		}
+		private bool m_added;
+
+		public Change(string file, ChangeType changeType, ViewModel viewModel)
 		{
 			this.File = file;
 			this.ChangeType = changeType;
+			this.ViewModel = viewModel;
 		}
+
+		public string Key { get { return File + ChangeType; } }
 	}
 
 	//-----------------------------------------------------------------------
@@ -82,12 +99,35 @@ namespace GitApp
 			{
 				m_numberCommitsToPull = value;
 				RaisePropertyChangedEvent();
+				RaisePropertyChangedEvent(nameof(UpToDate));
 			}
 		}
 		private int m_numberCommitsToPull;
 
 		//-----------------------------------------------------------------------
-		public DeferableObservableCollection<Change> ChangeList { get; } = new DeferableObservableCollection<Change>();
+		public int NumberCommitsToPush
+		{
+			get { return m_numberCommitsToPush; }
+			set
+			{
+				m_numberCommitsToPush = value;
+				RaisePropertyChangedEvent();
+				RaisePropertyChangedEvent(nameof(UpToDate));
+			}
+		}
+		private int m_numberCommitsToPush;
+
+		//-----------------------------------------------------------------------
+		public bool UpToDate
+		{
+			get
+			{
+				return NumberCommitsToPull + NumberCommitsToPush == 0;
+			}
+		}
+
+		//-----------------------------------------------------------------------
+		public List<Change> ChangeList { get; set; } = new List<Change>();
 
 		//-----------------------------------------------------------------------
 		public bool NotARepo
@@ -134,6 +174,9 @@ namespace GitApp
 		public Command<object> PushCMD { get { return new Command<object>((obj) => { Push(); }); } }
 
 		//-----------------------------------------------------------------------
+		public Command<object> CommitCMD { get { return new Command<object>((obj) => { Commit(); }); } }
+
+		//-----------------------------------------------------------------------
 		public Command<object> ClearConsoleCMD { get { return new Command<object>((obj) => { CMDLines.Clear(); }); } }
 
 		//-----------------------------------------------------------------------
@@ -150,6 +193,74 @@ namespace GitApp
 			}
 		}
 		public string m_arbitraryCMD;
+
+		//-----------------------------------------------------------------------
+		public Change SelectedChange
+		{
+			get { return m_selectedChange; }
+			set
+			{
+				m_selectedChange = value;
+				RaisePropertyChangedEvent();
+			}
+		}
+		private Change m_selectedChange;
+
+		//-----------------------------------------------------------------------
+		public bool? ChangeMultiSelect
+		{
+			get
+			{
+				bool? state = null;
+				foreach (var change in ChangeList)
+				{
+					if (state.HasValue)
+					{
+						if (change.Added != state.Value)
+						{
+							return null;
+						}
+					}
+					else
+					{
+						state = change.Added;
+					}
+				}
+
+				return state.HasValue ? state.Value : false;
+			}
+			set
+			{
+				if (value.HasValue)
+				{
+					foreach (var change in ChangeList)
+					{
+						change.Added = value.Value;
+					}
+				}
+				RaisePropertyChangedEvent();
+			}
+		}
+
+		//-----------------------------------------------------------------------
+		public string CommitMessage
+		{
+			get { return m_commitMessage; }
+			set
+			{
+				m_commitMessage = value;
+				RaisePropertyChangedEvent();
+
+				RaisePropertyChangedEvent(nameof(CanCommit));
+			}
+		}
+		private string m_commitMessage;
+
+		//-----------------------------------------------------------------------
+		public bool CanCommit
+		{
+			get { return !string.IsNullOrWhiteSpace(CommitMessage) && ChangeList.Any(e => e.Added); }
+		}
 
 		//-----------------------------------------------------------------------
 		public ViewModel()
@@ -214,6 +325,31 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void CheckStatus()
 		{
+			NumberCommitsToPull = 0;
+			NumberCommitsToPull = 0;
+
+			var previousChanges = new Dictionary<string, Change>();
+			foreach (var change in ChangeList)
+			{
+				previousChanges[change.Key] = change;
+			}
+			var newChanges = new List<Change>();
+			var changesChanged = false;
+
+			Action<Change> addChange = (change) => 
+			{
+				Change existingChange;
+				if (previousChanges.TryGetValue(change.Key, out existingChange))
+				{
+					newChanges.Add(existingChange);
+				}
+				else
+				{
+					changesChanged = true;
+					newChanges.Add(change);
+				}
+			};
+
 			ProcessUtils.ExecuteCmd(
 				"git status",
 				CurrentDirectory,
@@ -233,6 +369,35 @@ namespace GitApp
 
 						NumberCommitsToPull = count;
 					}
+					else if (output.StartsWith("Your branch is ahead of"))
+					{
+						var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
+						var countStr = split[1];
+						var count = int.Parse(countStr);
+
+						NumberCommitsToPush = count;
+					}
+					else if (output.Trim().StartsWith("modified:"))
+					{
+						var path = output.Replace("modified:", "").Trim();
+						var change = new Change(path, ChangeType.MODIFIED, this);
+
+						addChange(change);
+					}
+					else if (output.Trim().StartsWith("added:"))
+					{
+						var path = output.Replace("added:", "").Trim();
+						var change = new Change(path, ChangeType.ADDED, this);
+
+						addChange(change);
+					}
+					else if (output.Trim().StartsWith("deleted:"))
+					{
+						var path = output.Replace("deleted:", "").Trim();
+						var change = new Change(path, ChangeType.DELETED, this);
+
+						addChange(change);
+					}
 				},
 				(error) =>
 				{
@@ -247,6 +412,17 @@ namespace GitApp
 					NotARepo = false;
 				},
 				2000);
+
+			if (previousChanges.Count != newChanges.Count)
+			{
+				changesChanged = true;
+			}
+
+			if (changesChanged)
+			{
+				ChangeList = newChanges.OrderBy(e => e.File).ToList();
+				RaisePropertyChangedEvent(nameof(ChangeList));
+			}
 		}
 
 		//-----------------------------------------------------------------------
@@ -259,6 +435,30 @@ namespace GitApp
 		public void Pull()
 		{
 			ProcessUtils.ExecuteCmdBlocking("git pull --rebase", CurrentDirectory);
+		}
+
+		//-----------------------------------------------------------------------
+		public void Commit()
+		{
+			try
+			{
+				ProcessUtils.ExecuteCmdBlocking("git reset HEAD -- .", CurrentDirectory);
+
+				foreach (var change in ChangeList)
+				{
+					if (change.Added)
+					{
+						ProcessUtils.ExecuteCmdBlocking("git add " + change.File, CurrentDirectory);
+					}
+				}
+
+				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + CommitMessage + "\"", CurrentDirectory);
+				CommitMessage = "";
+			}
+			catch (Exception ex)
+			{
+				Message.Show(ex.Message, "Commit failed");
+			}
 		}
 
 		//-----------------------------------------------------------------------
