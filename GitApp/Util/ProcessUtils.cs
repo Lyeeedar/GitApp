@@ -10,7 +10,17 @@ namespace GitApp
 {
 	public class ProcessUtils
 	{
-		public static void ExecuteCmd(string cmd, string workingDirectory, Action<string> processOutput, Action<string> processError)
+		//-----------------------------------------------------------------------
+		public static string ExecuteCmdBlocking(string cmd, string workingDirectory)
+		{
+			var output = new StringBuilder();
+			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { output.AppendLine(line); });
+
+			return output.ToString();
+		}
+
+		//-----------------------------------------------------------------------
+		public static void ExecuteCmd(string cmd, string workingDirectory, Action<string> processOutput, Action<string> processError, int? timeout = 5000)
 		{
 			using (Process p = new Process())
 			{
@@ -24,28 +34,13 @@ namespace GitApp
 					WorkingDirectory = workingDirectory,
 					Arguments = "/c " + cmd
 				};
-				p.OutputDataReceived += (sender, args) =>
+
+				System.Timers.Timer timeoutTimer = null;
+
+				if (timeout.HasValue)
 				{
-					if (args.Data != null) processOutput(args.Data);
-				};
-				p.ErrorDataReceived += (sender, args) =>
-				{
-					if (args.Data != null) processError(args.Data);
-				};
-
-				p.EnableRaisingEvents = true;
-
-				p.Start();
-
-				p.BeginOutputReadLine();
-				p.BeginErrorReadLine();
-
-				bool exited = false;
-				Task.Run(() => 
-				{
-					Thread.Sleep(5000);
-
-					if (!exited)
+					timeoutTimer = new System.Timers.Timer();
+					timeoutTimer.Elapsed += (e, args) =>
 					{
 						try
 						{
@@ -53,10 +48,52 @@ namespace GitApp
 							processError("Force kill");
 						}
 						catch (Exception) { }
+					};
+					timeoutTimer.Interval = timeout.Value;
+
+					timeoutTimer.Start();
+				}
+
+				p.OutputDataReceived += (sender, args) =>
+				{
+					if (args.Data != null)
+					{
+						processOutput(args.Data);
+
+						if (timeout.HasValue)
+						{
+							timeoutTimer.Stop();
+							timeoutTimer.Start();
+						}
 					}
-				});
+				};
+				p.ErrorDataReceived += (sender, args) =>
+				{
+					if (args.Data != null)
+					{
+						processError(args.Data);
+
+						if (timeout.HasValue)
+						{
+							timeoutTimer.Stop();
+							timeoutTimer.Start();
+						}
+					}
+				};
+
+				p.EnableRaisingEvents = true;
+				p.Start();
+
+				p.BeginOutputReadLine();
+				p.BeginErrorReadLine();
+
 				p.WaitForExit();
-				exited = true;
+
+				if (timeout.HasValue)
+				{
+					timeoutTimer.Stop();
+					timeoutTimer.Dispose();
+				}
 			}
 		}
 	}

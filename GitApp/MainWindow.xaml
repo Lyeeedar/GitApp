@@ -108,7 +108,8 @@
 
 				<Border
 					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
-					Style="{StaticResource ButtonBorder}">
+					Style="{StaticResource ButtonBorder}"
+					MouseLeftButtonDown="PullClick">
 					<DockPanel>
 						<Image
 							Margin="10"
@@ -145,7 +146,34 @@
 				</Border>
 			</Grid>
 
+			<TabControl
+				Grid.Row="1"
+				Grid.Column="2">
+				<TabItem
+					Header="Diff">
 
+				</TabItem>
+				<TabItem
+					Header="Console">
+					<DockPanel>
+						<TextBox
+							DockPanel.Dock="Bottom"
+							HorizontalAlignment="Stretch"
+							KeyDown="ArbitraryCMDKeyDown"
+							Text="{Binding ArbitraryCMD, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						<ListView
+							ItemsSource="{Binding CMDLines}">
+							<ListView.ItemTemplate>
+								<DataTemplate>
+									<TextBlock
+										Text="{Binding Text}"
+										Foreground="{Binding Brush}" />
+								</DataTemplate>
+							</ListView.ItemTemplate>
+						</ListView>
+					</DockPanel>
+				</TabItem>
+			</TabControl>
 		</Grid>
 	</DockPanel>
 </Window>

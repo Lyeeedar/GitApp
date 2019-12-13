@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StructuredXmlEditor
+namespace GitApp
 {
 	public static class Future
 	{

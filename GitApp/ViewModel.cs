@@ -5,11 +5,27 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows;
+using System.Windows.Media;
 using System.Xml.Serialization;
 using WPFFolderBrowser;
 
 namespace GitApp
 {
+	//-----------------------------------------------------------------------
+	public class Line
+	{
+		public string Text { get; set; }
+		public Brush Brush { get; set; }
+
+		public Line(string text, Brush brush)
+		{
+			this.Text = text;
+			this.Brush = brush;
+		}
+	}
+
+	//-----------------------------------------------------------------------
 	public class ViewModel : NotifyPropertyChanged
 	{
 		//-----------------------------------------------------------------------
@@ -85,6 +101,27 @@ namespace GitApp
 
 		//-----------------------------------------------------------------------
 		public Command<object> ChangeDirectoryCMD { get { return new Command<object>((obj) => { ChangeDirectory(); }); } }
+
+		//-----------------------------------------------------------------------
+		public Command<object> PullCMD { get { return new Command<object>((obj) => { Pull(); }); } }
+
+		//-----------------------------------------------------------------------
+		public Command<object> PushCMD { get { return new Command<object>((obj) => { Push(); }); } }
+
+		//-----------------------------------------------------------------------
+		public DeferableObservableCollection<Line> CMDLines { get; } = new DeferableObservableCollection<Line>();
+
+		//-----------------------------------------------------------------------
+		public string ArbitraryCMD
+		{
+			get { return m_arbitraryCMD; }
+			set
+			{
+				m_arbitraryCMD = value;
+				RaisePropertyChangedEvent();
+			}
+		}
+		public string m_arbitraryCMD;
 
 		//-----------------------------------------------------------------------
 		public ViewModel()
@@ -174,11 +211,53 @@ namespace GitApp
 					if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
 					{
 						NotARepo = true;
+						Branch = "Not a Repo";
+						NumberCommitsToPull = 0;
 						return;
 					}
 
 					NotARepo = false;
-				});
+				},
+				2000);
+		}
+
+		//-----------------------------------------------------------------------
+		public void Push()
+		{
+			ProcessUtils.ExecuteCmdBlocking("git push", CurrentDirectory);
+		}
+
+		//-----------------------------------------------------------------------
+		public void Pull()
+		{
+			ProcessUtils.ExecuteCmdBlocking("git pull --rebase", CurrentDirectory);
+		}
+
+		//-----------------------------------------------------------------------
+		public void RunArbitraryCommand(string cmd)
+		{
+			Task.Run(() => 
+			{
+				ProcessUtils.ExecuteCmd(
+					cmd,
+					CurrentDirectory,
+					(output) =>
+					{
+						Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+						{
+							CMDLines.Add(new Line(output, Brushes.White));
+						}));
+					},
+					(error) =>
+					{
+						Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+						{
+							CMDLines.Add(new Line(error, Brushes.Red));
+						}));
+					},
+					null);
+			});
+			
 		}
 
 		//-----------------------------------------------------------------------

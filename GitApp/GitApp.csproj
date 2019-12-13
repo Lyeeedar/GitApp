@@ -66,7 +66,6 @@
     <Compile Include="Util\DescendantPropertyChangedEventArgs.cs" />
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\Future.cs" />
-    <Compile Include="Util\ISelectable.cs" />
     <Compile Include="Util\NotifyPropertyChanged.cs" />
     <Compile Include="Util\OpenFolderDialog.cs" />
     <Compile Include="Util\Pool.cs" />
