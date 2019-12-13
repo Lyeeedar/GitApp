@@ -202,9 +202,14 @@ namespace GitApp
 			{
 				m_selectedChange = value;
 				RaisePropertyChangedEvent();
+
+				GetCurrentDiff();
 			}
 		}
 		private Change m_selectedChange;
+
+		//-----------------------------------------------------------------------
+		public List<Line> SelectedDiff { get; set; }
 
 		//-----------------------------------------------------------------------
 		public bool? ChangeMultiSelect
@@ -473,6 +478,58 @@ namespace GitApp
 			{
 				Message.Show(ex.Message, "Commit failed");
 			}
+		}
+
+		//-----------------------------------------------------------------------
+		public void GetCurrentDiff()
+		{
+			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff " + SelectedChange.File, CurrentDirectory);
+			var strlines = rawDiff.Split('\n');
+
+			var lines = new List<Line>();
+
+			var isDiff = false;
+			var currentBlock = new StringBuilder();
+			var currentBlockType = ' ';
+			var currentBlockBrush = Brushes.Transparent;
+			foreach (var strLine in strlines)
+			{
+				if (strLine == "") continue;
+
+				var blockType = strLine[0];
+				if (blockType != currentBlockType)
+				{
+					lines.Add(new Line(currentBlock.ToString(), currentBlockBrush));
+					currentBlock.Clear();
+					currentBlockType = blockType;
+				}
+
+				if (strLine[0] == '@')
+				{
+					isDiff = true;
+					currentBlockBrush = Brushes.DarkGray;
+				}
+				else if (strLine[0] == '+')
+				{
+					currentBlockBrush = Brushes.DarkGreen;
+				}
+				else if (strLine[0] == '-')
+				{
+					currentBlockBrush = Brushes.DarkRed;
+				}
+				else
+				{
+					currentBlockBrush = Brushes.Transparent;
+				}
+
+				if (isDiff)
+				{
+					currentBlock.AppendLine(strLine);
+				}
+			}
+
+			SelectedDiff = lines;
+			RaisePropertyChangedEvent(nameof(SelectedDiff));
 		}
 
 		//-----------------------------------------------------------------------
