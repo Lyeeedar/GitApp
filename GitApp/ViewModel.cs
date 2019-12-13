@@ -26,6 +26,28 @@ namespace GitApp
 	}
 
 	//-----------------------------------------------------------------------
+	public enum ChangeType
+	{
+		UNTRACKED,
+		MODIFIED,
+		ADDED,
+		DELETED
+	}
+
+	//-----------------------------------------------------------------------
+	public class Change
+	{
+		public string File { get; set; }
+		public ChangeType ChangeType { get; set; }
+
+		public Change(string file, ChangeType changeType)
+		{
+			this.File = file;
+			this.ChangeType = changeType;
+		}
+	}
+
+	//-----------------------------------------------------------------------
 	public class ViewModel : NotifyPropertyChanged
 	{
 		//-----------------------------------------------------------------------
@@ -63,6 +85,9 @@ namespace GitApp
 			}
 		}
 		private int m_numberCommitsToPull;
+
+		//-----------------------------------------------------------------------
+		public DeferableObservableCollection<Change> ChangeList { get; } = new DeferableObservableCollection<Change>();
 
 		//-----------------------------------------------------------------------
 		public bool NotARepo
@@ -107,6 +132,9 @@ namespace GitApp
 
 		//-----------------------------------------------------------------------
 		public Command<object> PushCMD { get { return new Command<object>((obj) => { Push(); }); } }
+
+		//-----------------------------------------------------------------------
+		public Command<object> ClearConsoleCMD { get { return new Command<object>((obj) => { CMDLines.Clear(); }); } }
 
 		//-----------------------------------------------------------------------
 		public DeferableObservableCollection<Line> CMDLines { get; } = new DeferableObservableCollection<Line>();
@@ -236,6 +264,9 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void RunArbitraryCommand(string cmd)
 		{
+			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			CMDLines.Add(new Line(cmd, Brushes.Green));
+
 			Task.Run(() => 
 			{
 				ProcessUtils.ExecuteCmd(

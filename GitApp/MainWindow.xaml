@@ -156,11 +156,17 @@
 				<TabItem
 					Header="Console">
 					<DockPanel>
-						<TextBox
-							DockPanel.Dock="Bottom"
-							HorizontalAlignment="Stretch"
-							KeyDown="ArbitraryCMDKeyDown"
-							Text="{Binding ArbitraryCMD, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						<DockPanel
+							DockPanel.Dock="Bottom">
+							<Button
+								DockPanel.Dock="Right"
+								Content="Clear"
+								Command="{Binding ClearConsoleCMD}"/>
+							<TextBox
+								HorizontalAlignment="Stretch"
+								KeyDown="ArbitraryCMDKeyDown"
+								Text="{Binding ArbitraryCMD, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						</DockPanel>
 						<ListView
 							ItemsSource="{Binding CMDLines}">
 							<ListView.ItemTemplate>
