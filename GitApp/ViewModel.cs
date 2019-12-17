@@ -68,6 +68,11 @@ namespace GitApp
 	public class ViewModel : NotifyPropertyChanged
 	{
 		//-----------------------------------------------------------------------
+		private static SolidColorBrush RemovedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 50, 50));
+		private static SolidColorBrush ModifiedBrush = new SolidColorBrush(Color.FromArgb(50, 50, 255, 50));
+		private static SolidColorBrush GreyBrush = new SolidColorBrush(Color.FromArgb(50, 150, 150, 150));
+		
+		//-----------------------------------------------------------------------
 		public string ProjectName
 		{
 			get { return m_projectName; }
@@ -433,14 +438,39 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void Push()
 		{
-			try
+			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			CMDLines.Add(new Line("Button push", Brushes.SkyBlue));
+
+			Task.Run(() =>
 			{
-				ProcessUtils.ExecuteCmdBlocking("git push", CurrentDirectory);
-			}
-			catch (Exception ex)
-			{
-				Message.Show(ex.Message, "Push failed");
-			}
+				var failed = "";
+				ProcessUtils.ExecuteCmd(
+					"git push",
+					CurrentDirectory,
+					(output) =>
+					{
+						SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(output, Brushes.White));
+						});
+					},
+					(error) =>
+					{
+						SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(error, Brushes.Red));
+						});
+					},
+					null);
+
+				if (!string.IsNullOrWhiteSpace(failed))
+				{
+					SafeBeginInvoke(() =>
+					{
+						Message.Show(failed, "Push failed");
+					});
+				}
+			});
 		}
 
 		//-----------------------------------------------------------------------
@@ -507,15 +537,15 @@ namespace GitApp
 				if (strLine[0] == '@')
 				{
 					isDiff = true;
-					currentBlockBrush = Brushes.DarkGray;
+					currentBlockBrush = GreyBrush;
 				}
 				else if (strLine[0] == '+')
 				{
-					currentBlockBrush = Brushes.DarkGreen;
+					currentBlockBrush = ModifiedBrush;
 				}
 				else if (strLine[0] == '-')
 				{
-					currentBlockBrush = Brushes.DarkRed;
+					currentBlockBrush = RemovedBrush;
 				}
 				else
 				{
@@ -533,6 +563,12 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		public void SafeBeginInvoke(Action func)
+		{
+			Application.Current?.Dispatcher.BeginInvoke(new Action(() => { func(); }));
+		}
+
+		//-----------------------------------------------------------------------
 		public void RunArbitraryCommand(string cmd)
 		{
 			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
@@ -545,17 +581,17 @@ namespace GitApp
 					CurrentDirectory,
 					(output) =>
 					{
-						Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+						SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(output, Brushes.White));
-						}));
+						});
 					},
 					(error) =>
 					{
-						Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+						SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(error, Brushes.Red));
-						}));
+						});
 					},
 					null);
 			});
