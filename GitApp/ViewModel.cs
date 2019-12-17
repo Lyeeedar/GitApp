@@ -64,8 +64,19 @@ namespace GitApp
 		public string Key { get { return File + ChangeType; } }
 	}
 
-	//-----------------------------------------------------------------------
-	public class ViewModel : NotifyPropertyChanged
+    //-----------------------------------------------------------------------
+    public class Commit
+    {
+        public string ID { get; set; }
+        public string Author { get; set; }
+        public DateTime Date { get; set; }
+        public string Message { get; set; }
+
+        public bool IsLocal { get; set; }
+    }
+
+    //-----------------------------------------------------------------------
+    public class ViewModel : NotifyPropertyChanged
 	{
 		//-----------------------------------------------------------------------
 		private static SolidColorBrush RemovedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 50, 50));
@@ -274,8 +285,11 @@ namespace GitApp
 			get { return !string.IsNullOrWhiteSpace(CommitMessage) && ChangeList.Any(e => e.Added); }
 		}
 
-		//-----------------------------------------------------------------------
-		public ViewModel()
+        //-----------------------------------------------------------------------
+        public List<Commit> Log { get; set; }
+
+        //-----------------------------------------------------------------------
+        public ViewModel()
 		{
 			if (File.Exists(SettingsPath))
 			{
@@ -446,8 +460,57 @@ namespace GitApp
             NumberCommitsToPush = newNumberCommitsToPush;
 		}
 
-		//-----------------------------------------------------------------------
-		public void Push()
+        //-----------------------------------------------------------------------
+        public void GetLog()
+        {
+            var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
+            var lines = rawLog.Split('\n');
+
+            var log = new List<Commit>();
+            var commitsMap = new Dictionary<string, Commit>();
+
+            Commit currentCommit = null;
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("commit "))
+                {
+                    if (currentCommit != null)
+                    {
+                        currentCommit.Message = currentCommit.Message.Trim();
+                        log.Add(currentCommit);
+                        commitsMap[currentCommit.ID] = currentCommit;
+                    }
+
+                    currentCommit = new Commit();
+                    currentCommit.ID = line.Replace("commit", "").Trim();
+                }
+                else if (line.StartsWith("Author: "))
+                {
+                    currentCommit.Author = line.Replace("Author: ", "").Trim();
+                }
+                else if (line.StartsWith("Date: "))
+                {
+                    currentCommit.Date = DateTime.Parse(line.Replace("Date: ", "").Trim());
+                }
+                else
+                {
+                    currentCommit.Message += line + "\n";
+                }
+            }
+
+            var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
+            lines = rawLog.Split('\n');
+            foreach (var line in lines)
+            {
+                commitsMap[line].IsLocal = true;
+            }
+
+            Log = log;
+            RaisePropertyChangedEvent(nameof(Log));
+        }
+
+        //-----------------------------------------------------------------------
+        public void Push()
 		{
             if (PushInProgress || PullInProgress)
             {
