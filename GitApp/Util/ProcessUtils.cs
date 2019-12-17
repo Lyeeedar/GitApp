@@ -10,8 +10,11 @@ namespace GitApp
 {
 	public class ProcessUtils
 	{
-		//-----------------------------------------------------------------------
-		public static string ExecuteCmdBlocking(string cmd, string workingDirectory)
+        //-----------------------------------------------------------------------
+        public static bool OperationInProgress = false;
+
+        //-----------------------------------------------------------------------
+        public static string ExecuteCmdBlocking(string cmd, string workingDirectory)
 		{
 			var output = new StringBuilder();
 			var error = new StringBuilder();
@@ -28,7 +31,9 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public static void ExecuteCmd(string cmd, string workingDirectory, Action<string> processOutput, Action<string> processError, int? timeout = 5000)
 		{
-			using (Process p = new Process())
+            OperationInProgress = true;
+
+            using (Process p = new Process())
 			{
 				p.StartInfo = new ProcessStartInfo()
 				{
@@ -101,6 +106,9 @@ namespace GitApp
 					timeoutTimer.Dispose();
 				}
 			}
-		}
+
+            OperationInProgress = false;
+
+        }
 	}
 }

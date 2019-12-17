@@ -337,13 +337,14 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void CheckStatus()
 		{
-            if (PushInProgress || PullInProgress || !Application.Current.MainWindow.IsActive)
+            var windowActive = true;//Application.Current?.MainWindow?.IsActive ?? false;
+            if (PushInProgress || PullInProgress || !windowActive || ProcessUtils.OperationInProgress)
             {
                 return;
             }
 
-			NumberCommitsToPush = 0;
-			NumberCommitsToPull = 0;
+            var newNumberCommitsToPush = 0;
+            var newNumberCommitsToPull = 0;
 
 			var previousChanges = new Dictionary<string, Change>();
 			foreach (var change in ChangeList)
@@ -384,7 +385,7 @@ namespace GitApp
 						var countStr = split[1];
 						var count = int.Parse(countStr);
 
-						NumberCommitsToPull = count;
+						newNumberCommitsToPull = count;
 					}
 					else if (output.StartsWith("Your branch is ahead of"))
 					{
@@ -392,7 +393,7 @@ namespace GitApp
 						var countStr = split[1];
 						var count = int.Parse(countStr);
 
-						NumberCommitsToPush = count;
+						newNumberCommitsToPush = count;
 					}
 					else if (output.Trim().StartsWith("modified:"))
 					{
@@ -422,7 +423,7 @@ namespace GitApp
 					{
 						NotARepo = true;
 						Branch = "Not a Repo";
-						NumberCommitsToPull = 0;
+						newNumberCommitsToPull = 0;
 						return;
 					}
 
@@ -440,6 +441,9 @@ namespace GitApp
 				ChangeList = newChanges.OrderBy(e => e.File).ToList();
 				RaisePropertyChangedEvent(nameof(ChangeList));
 			}
+
+            NumberCommitsToPull = newNumberCommitsToPull;
+            NumberCommitsToPush = newNumberCommitsToPush;
 		}
 
 		//-----------------------------------------------------------------------
