@@ -289,16 +289,18 @@
 				Grid.Column="2">
 				<TabItem
 					Header="Diff">
-					<ItemsControl
-						ItemsSource="{Binding SelectedDiff}">
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<TextBlock
-									Background="{Binding Brush}"
-									Text="{Binding Text}" />
-							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
+					<ScrollViewer>
+						<ItemsControl
+							ItemsSource="{Binding SelectedDiff}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<TextBlock
+										Background="{Binding Brush}"
+										Text="{Binding Text}" />
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
 				</TabItem>
 				<TabItem
 					Header="Console">
