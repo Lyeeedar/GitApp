@@ -69,7 +69,7 @@ namespace GitApp
     {
         public string ID { get; set; }
         public string Author { get; set; }
-        public DateTime Date { get; set; }
+        public string Date { get; set; }
         public string Message { get; set; }
 
         public bool IsLocal { get; set; }
@@ -172,6 +172,7 @@ namespace GitApp
 				ProjectName = Path.GetFileName(CurrentDirectory);
 
 				CheckStatus();
+                GetLog();
 			}
 		}
 		private string m_currentDirectory;
@@ -490,7 +491,7 @@ namespace GitApp
                 }
                 else if (line.StartsWith("Date: "))
                 {
-                    currentCommit.Date = DateTime.Parse(line.Replace("Date: ", "").Trim());
+                    currentCommit.Date = line.Replace("Date: ", "").Trim();
                 }
                 else
                 {
@@ -499,10 +500,10 @@ namespace GitApp
             }
 
             var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
-            lines = rawLog.Split('\n');
+            lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
-                commitsMap[line].IsLocal = true;
+                commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
             }
 
             Log = log;
