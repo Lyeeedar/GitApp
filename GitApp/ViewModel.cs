@@ -337,7 +337,7 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void CheckStatus()
 		{
-            if (PushInProgress || PullInProgress)
+            if (PushInProgress || PullInProgress || !Application.Current.MainWindow.IsActive)
             {
                 return;
             }
