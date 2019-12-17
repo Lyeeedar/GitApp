@@ -174,9 +174,11 @@ namespace GitApp
 
 		//-----------------------------------------------------------------------
 		public Command<object> PullCMD { get { return new Command<object>((obj) => { Pull(); }); } }
+        public bool PullInProgress { get; set; }
 
 		//-----------------------------------------------------------------------
 		public Command<object> PushCMD { get { return new Command<object>((obj) => { Push(); }); } }
+        public bool PushInProgress { get; set; }
 
 		//-----------------------------------------------------------------------
 		public Command<object> CommitCMD { get { return new Command<object>((obj) => { Commit(); }); } }
@@ -335,7 +337,12 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void CheckStatus()
 		{
-			NumberCommitsToPull = 0;
+            if (PushInProgress || PullInProgress)
+            {
+                return;
+            }
+
+			NumberCommitsToPush = 0;
 			NumberCommitsToPull = 0;
 
 			var previousChanges = new Dictionary<string, Change>();
@@ -438,6 +445,14 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void Push()
 		{
+            if (PushInProgress || PullInProgress)
+            {
+                return;
+            }
+
+            PushInProgress = true;
+            RaisePropertyChangedEvent(nameof(PushInProgress));
+
 			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
 			CMDLines.Add(new Line("Button push", Brushes.SkyBlue));
 
@@ -470,21 +485,66 @@ namespace GitApp
 						Message.Show(failed, "Push failed");
 					});
 				}
+
+                SafeBeginInvoke(() => 
+                {
+                    PushInProgress = false;
+                    RaisePropertyChangedEvent(nameof(PushInProgress));
+                });
 			});
 		}
 
 		//-----------------------------------------------------------------------
 		public void Pull()
 		{
-			try
-			{
-				ProcessUtils.ExecuteCmdBlocking("git pull --rebase", CurrentDirectory);
-			}
-			catch (Exception ex)
-			{
-				Message.Show(ex.Message, "Pull failed");
-			}
-		}
+            if (PushInProgress || PullInProgress)
+            {
+                return;
+            }
+
+            PullInProgress = true;
+            RaisePropertyChangedEvent(nameof(PullInProgress));
+
+            CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+            CMDLines.Add(new Line("Button pull", Brushes.SkyBlue));
+
+            Task.Run(() =>
+            {
+                var failed = "";
+                ProcessUtils.ExecuteCmd(
+                    "git pull --rebase",
+                    CurrentDirectory,
+                    (output) =>
+                    {
+                        SafeBeginInvoke(() =>
+                        {
+                            CMDLines.Add(new Line(output, Brushes.White));
+                        });
+                    },
+                    (error) =>
+                    {
+                        SafeBeginInvoke(() =>
+                        {
+                            CMDLines.Add(new Line(error, Brushes.Red));
+                        });
+                    },
+                    null);
+
+                if (!string.IsNullOrWhiteSpace(failed))
+                {
+                    SafeBeginInvoke(() =>
+                    {
+                        Message.Show(failed, "Pull failed");
+                    });
+                }
+
+                SafeBeginInvoke(() =>
+                {
+                    PullInProgress = false;
+                    RaisePropertyChangedEvent(nameof(PullInProgress));
+                });
+            });
+        }
 
 		//-----------------------------------------------------------------------
 		public void Commit()
@@ -513,6 +573,13 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void GetCurrentDiff()
 		{
+            if (SelectedChange == null)
+            {
+                SelectedDiff = new List<Line>();
+                RaisePropertyChangedEvent(nameof(SelectedDiff));
+                return;
+            }
+
 			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff " + SelectedChange.File, CurrentDirectory);
 			var strlines = rawDiff.Split('\n');
 

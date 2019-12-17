@@ -172,6 +172,7 @@
 				</Grid.ColumnDefinitions>
 
 				<Border
+                    IsEnabled="{Binding PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PullClick">
@@ -232,6 +233,7 @@
 				</Border>
 
 				<Border
+                    IsEnabled="{Binding PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PushClick">
