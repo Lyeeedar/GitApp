@@ -349,14 +349,17 @@ namespace GitApp
 			}
 		}
 
-		//-----------------------------------------------------------------------
+        //-----------------------------------------------------------------------
+        bool checkingStatus = false;
 		public void CheckStatus()
 		{
             var windowActive = true;//Application.Current?.MainWindow?.IsActive ?? false;
-            if (PushInProgress || PullInProgress || !windowActive || ProcessUtils.OperationInProgress)
+            if (PushInProgress || PullInProgress || !windowActive || ProcessUtils.OperationInProgress || checkingStatus)
             {
                 return;
             }
+
+            checkingStatus = true;
 
             var newNumberCommitsToPush = 0;
             var newNumberCommitsToPull = 0;
@@ -459,7 +462,9 @@ namespace GitApp
 
             NumberCommitsToPull = newNumberCommitsToPull;
             NumberCommitsToPush = newNumberCommitsToPush;
-		}
+
+            checkingStatus = false;
+        }
 
         //-----------------------------------------------------------------------
         public void GetLog()
@@ -558,6 +563,8 @@ namespace GitApp
                 {
                     PushInProgress = false;
                     RaisePropertyChangedEvent(nameof(PushInProgress));
+
+                    CheckStatus();
                 });
 			});
 		}
@@ -610,6 +617,8 @@ namespace GitApp
                 {
                     PullInProgress = false;
                     RaisePropertyChangedEvent(nameof(PullInProgress));
+
+                    CheckStatus();
                 });
             });
         }
@@ -631,7 +640,9 @@ namespace GitApp
 
 				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + CommitMessage + "\"", CurrentDirectory);
 				CommitMessage = "";
-			}
+
+                CheckStatus();
+            }
 			catch (Exception ex)
 			{
 				Message.Show(ex.Message, "Commit failed");
