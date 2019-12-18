@@ -32,7 +32,7 @@
 			</Style.Triggers>
 		</Style>
 	</Window.Resources>
-	
+
 	<DockPanel>
 		<Menu
 			DockPanel.Dock="Top">
@@ -91,7 +91,7 @@
 			</Border>
 
 			<TabControl
-                SelectedIndex="{Binding SelectedTab, Mode=OneWayToSource}"
+				SelectedIndex="{Binding SelectedTab, Mode=OneWayToSource}"
 				Grid.Row="1">
 				<TabItem
 					Header="Changes">
@@ -107,54 +107,56 @@
 								Text="{Binding ChangeList.Count, StringFormat={}{0} Changes}" />
 						</DockPanel>
 
-                        <Grid
-                            Visibility="{Binding UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
-                            DockPanel.Dock="Bottom">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition
-                                    Width="*" />
-                                <ColumnDefinition
-                                    Width="auto" />
-                            </Grid.ColumnDefinitions>
+						<Grid
+							Visibility="{Binding UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+							DockPanel.Dock="Bottom">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition
+									Width="*" />
+								<ColumnDefinition
+									Width="auto" />
+							</Grid.ColumnDefinitions>
 
-                            <TextBlock
-                                Text="{Binding UndoableLastCommit}" />
-                            <Button
-                                Grid.Column="1"
-                                Command="{Binding UndoCMD}"
-                                Content="Undo" />
-                        </Grid>
+							<TextBlock
+								Text="{Binding UndoableLastCommit}" />
+							<Button
+								Grid.Column="1"
+								Command="{Binding UndoCMD}"
+								Content="Undo" />
+						</Grid>
 
-                        <Button
+						<Button
 							IsEnabled="{Binding CanCommit}"
 							DockPanel.Dock="Bottom"
 							Content="Commit changes"
-							Command="{Binding CommitCMD}"/>
+							Command="{Binding CommitCMD}" />
 
-                        <Grid
-                            DockPanel.Dock="Bottom">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition
-                                    Width="*" />
-                                <ColumnDefinition
-                                    Width="*" />
-                                <ColumnDefinition
-                                    Width="3*" />
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBox
-                                Grid.Column="0"
-                                Text="{Binding CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						<Grid
+							DockPanel.Dock="Bottom">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition
+									Width="*" />
+								<ColumnDefinition
+									Width="*" />
+								<ColumnDefinition
+									Width="3*" />
+							</Grid.ColumnDefinitions>
 
-                            <TextBox
-                                 Grid.Column="1"
-                                Text="{Binding CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							<local:AutoCompleteTextBox
+								Grid.Column="0"
+								ItemsSource="{Binding CommitTypes}"
+								Text="{Binding CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <local:MultilineTextEditor
-                                 Grid.Column="2"
-							    Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        
+							<local:AutoCompleteTextBox
+								Grid.Column="1"
+								ItemsSource="{Binding CommitScopes}"
+								Text="{Binding CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+							<local:MultilineTextEditor
+								Grid.Column="2"
+								Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						</Grid>
+
 						<ListView
 							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
 							ItemsSource="{Binding ChangeList}">
@@ -189,16 +191,16 @@
 				</TabItem>
 				<TabItem
 					Header="History">
-                    <ListView
-                        SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
-                        ItemsSource="{Binding Log}">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock
-                                    Text="{Binding Message}" />
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+					<ListView
+						SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
+						ItemsSource="{Binding Log}">
+						<ListView.ItemTemplate>
+							<DataTemplate>
+								<TextBlock
+									Text="{Binding Message}" />
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
 				</TabItem>
 			</TabControl>
 
@@ -220,7 +222,7 @@
 				</Grid.ColumnDefinitions>
 
 				<Border
-                    IsEnabled="{Binding PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+					IsEnabled="{Binding PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PullClick">
@@ -281,7 +283,7 @@
 				</Border>
 
 				<Border
-                    IsEnabled="{Binding PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+					IsEnabled="{Binding PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PushClick">
@@ -339,67 +341,67 @@
 				Grid.Column="2">
 				<TabItem
 					Header="Diff">
-                    <Grid>
-                        <ScrollViewer
-                            Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}}">
-                            <ItemsControl
-							    ItemsSource="{Binding SelectedDiff}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock
-										Background="{Binding Brush}"
-										Text="{Binding Text}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+					<Grid>
+						<ScrollViewer
+							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}}">
+							<ItemsControl
+								ItemsSource="{Binding SelectedDiff}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<TextBlock
+											Background="{Binding Brush}"
+											Text="{Binding Text}" />
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
 
-                        <Grid
-                           Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}, ConverterParameter=Not}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition
-                                    Width="*" />
-                                <ColumnDefinition
-                                    Width="auto" />
-                                <ColumnDefinition
-                                    Width="4*" />
-                            </Grid.ColumnDefinitions>
+						<Grid
+							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}, ConverterParameter=Not}">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition
+									Width="*" />
+								<ColumnDefinition
+									Width="auto" />
+								<ColumnDefinition
+									Width="4*" />
+							</Grid.ColumnDefinitions>
 
-                            <ListView
-                                SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
-                                ItemsSource="{Binding SelectedCommit.CommitContents.Keys}">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock
-                                            Text="{Binding }" />
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
+							<ListView
+								SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
+								ItemsSource="{Binding SelectedCommit.CommitContents.Keys}">
+								<ListView.ItemTemplate>
+									<DataTemplate>
+										<TextBlock
+											Text="{Binding }" />
+									</DataTemplate>
+								</ListView.ItemTemplate>
+							</ListView>
 
-                            <GridSplitter
-				                Background="{StaticResource WindowBackgroundLightBrush}"
-				                Grid.Column="1"
-				                HorizontalAlignment="Center"
-				                VerticalAlignment="Stretch"
-				                Width="5" />
+							<GridSplitter
+								Background="{StaticResource WindowBackgroundLightBrush}"
+								Grid.Column="1"
+								HorizontalAlignment="Center"
+								VerticalAlignment="Stretch"
+								Width="5" />
 
-                            <ScrollViewer
-                                Grid.Column="2">
-                                <ItemsControl
-							        ItemsSource="{Binding SelectedCommit.SelectedDiff}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-										        Background="{Binding Brush}"
-										        Text="{Binding Text}" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Grid>
-                    </Grid>
-                    
-					
+							<ScrollViewer
+								Grid.Column="2">
+								<ItemsControl
+									ItemsSource="{Binding SelectedCommit.SelectedDiff}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<TextBlock
+												Background="{Binding Brush}"
+												Text="{Binding Text}" />
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</ScrollViewer>
+						</Grid>
+					</Grid>
+
+
 				</TabItem>
 				<TabItem
 					Header="Console">
@@ -409,7 +411,7 @@
 							<Button
 								DockPanel.Dock="Right"
 								Content="Clear"
-								Command="{Binding ClearConsoleCMD}"/>
+								Command="{Binding ClearConsoleCMD}" />
 							<TextBox
 								HorizontalAlignment="Stretch"
 								KeyDown="ArbitraryCMDKeyDown"

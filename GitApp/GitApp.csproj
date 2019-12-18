@@ -75,6 +75,7 @@
     <Compile Include="View\CustomControls\AnimatedImage.xaml.cs">
       <DependentUpon>AnimatedImage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="View\CustomControls\AutoCompleteTextBox.cs" />
     <Compile Include="View\CustomControls\ColourPicker\ColorCanvas.cs" />
     <Compile Include="View\CustomControls\ColourPicker\ColorSpectrumSlider.cs" />
     <Compile Include="View\CustomControls\ColourPicker\ColourUtilities.cs" />
@@ -87,6 +88,7 @@
     </Compile>
     <Compile Include="View\CustomControls\MultilineTextEditor.cs" />
     <Compile Include="View\CustomControls\NumericTextBox.cs" />
+    <Compile Include="View\CustomControls\PromptTextBox.cs" />
     <Compile Include="View\SharedResourceDictionary.cs" />
     <Compile Include="View\ValueConverters\ColourMarkupConverter.cs" />
     <Compile Include="View\ValueConverters\ContrastTextConverter.cs" />
@@ -111,6 +113,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="View\CustomControls\Message.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="View\Styles\AutoCompleteTextBox.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -155,6 +161,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="View\Styles\NumericTextBox.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="View\Styles\PromptTextBox.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

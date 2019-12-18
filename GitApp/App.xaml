@@ -37,6 +37,10 @@
 				<v:SharedResourceDictionary
 					Source="View/Styles/TextBox.xaml" />
 				<v:SharedResourceDictionary
+					Source="View/Styles/PromptTextBox.xaml" />
+				<v:SharedResourceDictionary
+					Source="View/Styles/AutoCompleteTextBox.xaml" />
+				<v:SharedResourceDictionary
 					Source="View/Styles/ListView.xaml" />
 
 			</ResourceDictionary.MergedDictionaries>
