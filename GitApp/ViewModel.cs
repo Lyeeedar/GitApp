@@ -66,7 +66,7 @@ namespace GitApp
 	}
 
     //-----------------------------------------------------------------------
-    public class Commit
+    public class Commit : NotifyPropertyChanged
     {
         public string ID { get; set; }
         public string Author { get; set; }
@@ -74,6 +74,89 @@ namespace GitApp
         public string Message { get; set; }
 
         public bool IsLocal { get; set; }
+
+        public Dictionary<string, List<Line>> CommitContents
+        {
+            get
+            {
+                if (m_commitContents == null)
+                {
+                    m_commitContents = new Dictionary<string, List<Line>>();
+                    GetCommitContents();
+                }
+
+                return m_commitContents;
+            }
+        }
+        private Dictionary<string, List<Line>> m_commitContents;
+
+        public string SelectedFile
+        {
+            get { return m_selectedFile; }
+            set
+            {
+                m_selectedFile = value;
+
+                RaisePropertyChangedEvent();
+                RaisePropertyChangedEvent(nameof(SelectedDiff));
+            }
+        }
+        private string m_selectedFile;
+
+        public List<Line> SelectedDiff
+        {
+            get
+            {
+                if (m_selectedFile == null)
+                {
+                    return null;
+                }
+
+                return m_commitContents[m_selectedFile];
+            }
+        }
+
+        public ViewModel ViewModel { get; set; }
+
+        public Commit(ViewModel viewModel)
+        {
+            ViewModel = viewModel;
+        }
+
+        public void GetCommitContents()
+        {
+            var rawContents = ProcessUtils.ExecuteCmdBlocking("git show " + ID, ViewModel.CurrentDirectory);
+            var lines = rawContents.Split('\n');
+
+            var currentFile = "";
+            var currentDiff = new StringBuilder();
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("diff --git a/"))
+                {
+                    var file = line.Replace("diff --git a/", "").Split(' ')[0];
+
+                    if (currentFile != "")
+                    {
+                        var diff = ViewModel.ParseDiff(currentDiff.ToString());
+                        m_commitContents[currentFile] = diff;
+                    }
+
+                    currentDiff.Clear();
+                    currentFile = file;
+                }
+                else
+                {
+                    currentDiff.AppendLine(line);
+                }
+            }
+
+            if (currentFile != "")
+            {
+                var diff = ViewModel.ParseDiff(currentDiff.ToString());
+                m_commitContents[currentFile] = diff;
+            }
+        }
     }
 
     //-----------------------------------------------------------------------
@@ -231,11 +314,48 @@ namespace GitApp
 		}
 		private Change m_selectedChange;
 
-		//-----------------------------------------------------------------------
-		public List<Line> SelectedDiff { get; set; }
+        //-----------------------------------------------------------------------
+        public List<Line> SelectedDiff { get; set; }
 
-		//-----------------------------------------------------------------------
-		public bool? ChangeMultiSelect
+        //-----------------------------------------------------------------------
+        public Commit SelectedCommit
+        {
+            get { return m_selectedCommit; }
+            set
+            {
+                m_selectedCommit = value;
+                RaisePropertyChangedEvent();
+
+                GetCurrentDiff();
+            }
+        }
+        private Commit m_selectedCommit;
+
+        //-----------------------------------------------------------------------
+        public int SelectedTab
+        {
+            get { return m_selectedTab; }
+            set
+            {
+                m_selectedTab = value;
+                RaisePropertyChangedEvent();
+
+                RaisePropertyChangedEvent(nameof(ShowChangesDiff));
+            }
+        }
+        private int m_selectedTab;
+
+        //-----------------------------------------------------------------------
+        public bool ShowChangesDiff
+        {
+            get
+            {
+                return SelectedTab == 0;
+            }
+        }
+
+        //-----------------------------------------------------------------------
+        public bool? ChangeMultiSelect
 		{
 			get
 			{
@@ -408,10 +528,17 @@ namespace GitApp
 				previousChanges[change.Key] = change;
 			}
 			var newChanges = new List<Change>();
+            var addedChanges = new HashSet<string>();
 			var changesChanged = false;
 
 			Action<Change> addChange = (change) => 
 			{
+                if (addedChanges.Contains(change.Key))
+                {
+                    return;
+                }
+                addedChanges.Add(change.Key);
+
 				Change existingChange;
 				if (previousChanges.TryGetValue(change.Key, out existingChange))
 				{
@@ -558,7 +685,7 @@ namespace GitApp
                         }
                     }
 
-                    currentCommit = new Commit();
+                    currentCommit = new Commit(this);
                     currentCommit.ID = line.Replace("commit", "").Trim();
                 }
                 else if (line.StartsWith("Author: "))
@@ -763,53 +890,60 @@ namespace GitApp
             }
 
 			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff " + SelectedChange.File, CurrentDirectory);
-			var strlines = rawDiff.Split('\n');
 
-			var lines = new List<Line>();
-
-			var isDiff = false;
-			var currentBlock = new StringBuilder();
-			var currentBlockType = ' ';
-			var currentBlockBrush = Brushes.Transparent;
-			foreach (var strLine in strlines)
-			{
-				if (strLine == "") continue;
-
-				var blockType = strLine[0];
-				if (blockType != currentBlockType)
-				{
-					lines.Add(new Line(currentBlock.ToString(), currentBlockBrush));
-					currentBlock.Clear();
-					currentBlockType = blockType;
-				}
-
-				if (strLine[0] == '@')
-				{
-					isDiff = true;
-					currentBlockBrush = GreyBrush;
-				}
-				else if (strLine[0] == '+')
-				{
-					currentBlockBrush = ModifiedBrush;
-				}
-				else if (strLine[0] == '-')
-				{
-					currentBlockBrush = RemovedBrush;
-				}
-				else
-				{
-					currentBlockBrush = Brushes.Transparent;
-				}
-
-				if (isDiff)
-				{
-					currentBlock.AppendLine(strLine);
-				}
-			}
-
-			SelectedDiff = lines;
+			SelectedDiff = ParseDiff(rawDiff);
 			RaisePropertyChangedEvent(nameof(SelectedDiff));
 		}
+
+        //-----------------------------------------------------------------------
+        public List<Line> ParseDiff(string rawDiff)
+        {
+            var strlines = rawDiff.Split('\n');
+
+            var lines = new List<Line>();
+
+            var isDiff = false;
+            var currentBlock = new StringBuilder();
+            var currentBlockType = ' ';
+            var currentBlockBrush = Brushes.Transparent;
+            foreach (var strLine in strlines)
+            {
+                if (strLine == "") continue;
+
+                var blockType = strLine[0];
+                if (blockType != currentBlockType)
+                {
+                    lines.Add(new Line(currentBlock.ToString(), currentBlockBrush));
+                    currentBlock.Clear();
+                    currentBlockType = blockType;
+                }
+
+                if (strLine[0] == '@')
+                {
+                    isDiff = true;
+                    currentBlockBrush = GreyBrush;
+                }
+                else if (strLine[0] == '+')
+                {
+                    currentBlockBrush = ModifiedBrush;
+                }
+                else if (strLine[0] == '-')
+                {
+                    currentBlockBrush = RemovedBrush;
+                }
+                else
+                {
+                    currentBlockBrush = Brushes.Transparent;
+                }
+
+                if (isDiff)
+                {
+                    currentBlock.AppendLine(strLine);
+                }
+            }
+
+            return lines;
+        }
 
         //-----------------------------------------------------------------------
         public void Undo()

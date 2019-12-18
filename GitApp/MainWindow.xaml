@@ -91,6 +91,7 @@
 			</Border>
 
 			<TabControl
+                SelectedIndex="{Binding SelectedTab, Mode=OneWayToSource}"
 				Grid.Row="1">
 				<TabItem
 					Header="Changes">
@@ -189,6 +190,7 @@
 				<TabItem
 					Header="History">
                     <ListView
+                        SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
                         ItemsSource="{Binding Log}">
                         <ListView.ItemTemplate>
                             <DataTemplate>
@@ -337,18 +339,67 @@
 				Grid.Column="2">
 				<TabItem
 					Header="Diff">
-					<ScrollViewer>
-						<ItemsControl
-							ItemsSource="{Binding SelectedDiff}">
-							<ItemsControl.ItemTemplate>
-								<DataTemplate>
-									<TextBlock
+                    <Grid>
+                        <ScrollViewer
+                            Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}}">
+                            <ItemsControl
+							    ItemsSource="{Binding SelectedDiff}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock
 										Background="{Binding Brush}"
 										Text="{Binding Text}" />
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>
-					</ScrollViewer>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <Grid
+                           Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}, ConverterParameter=Not}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition
+                                    Width="*" />
+                                <ColumnDefinition
+                                    Width="auto" />
+                                <ColumnDefinition
+                                    Width="4*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ListView
+                                SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
+                                ItemsSource="{Binding SelectedCommit.CommitContents.Keys}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock
+                                            Text="{Binding }" />
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <GridSplitter
+				                Background="{StaticResource WindowBackgroundLightBrush}"
+				                Grid.Column="1"
+				                HorizontalAlignment="Center"
+				                VerticalAlignment="Stretch"
+				                Width="5" />
+
+                            <ScrollViewer
+                                Grid.Column="2">
+                                <ItemsControl
+							        ItemsSource="{Binding SelectedCommit.SelectedDiff}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+										        Background="{Binding Brush}"
+										        Text="{Binding Text}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                    
+					
 				</TabItem>
 				<TabItem
 					Header="Console">
