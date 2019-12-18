@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
@@ -267,21 +268,51 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		public string CommitMessage
+		public string CommitType
 		{
-			get { return m_commitMessage; }
+			get { return m_commitType; }
 			set
 			{
-				m_commitMessage = value;
+				m_commitType = value;
 				RaisePropertyChangedEvent();
-
-				RaisePropertyChangedEvent(nameof(CanCommit));
 			}
 		}
-		private string m_commitMessage;
+		private string m_commitType;
 
-		//-----------------------------------------------------------------------
-		public bool CanCommit
+        //-----------------------------------------------------------------------
+        public string CommitScope
+        {
+            get { return m_commitScope; }
+            set
+            {
+                m_commitScope = value;
+                RaisePropertyChangedEvent();
+            }
+        }
+        private string m_commitScope;
+
+        //-----------------------------------------------------------------------
+        public string CommitMessage
+        {
+            get { return m_commitMessage; }
+            set
+            {
+                m_commitMessage = value;
+                RaisePropertyChangedEvent();
+
+                RaisePropertyChangedEvent(nameof(CanCommit));
+            }
+        }
+        private string m_commitMessage;
+
+        //-----------------------------------------------------------------------
+        public List<string> CommitTypes { get; set; }
+
+        //-----------------------------------------------------------------------
+        public List<string> CommitScopes { get; set; }
+
+        //-----------------------------------------------------------------------
+        public bool CanCommit
 		{
 			get { return !string.IsNullOrWhiteSpace(CommitMessage) && ChangeList.Any(e => e.Added); }
 		}
@@ -467,6 +498,11 @@ namespace GitApp
         }
 
         //-----------------------------------------------------------------------
+        private static readonly Regex _regex = new Regex(
+            @"(?<Type>\w*)(\((?<Scope>.*)\))?:(?<Description>.*)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        //-----------------------------------------------------------------------
         public void GetLog()
         {
             var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
@@ -474,6 +510,9 @@ namespace GitApp
 
             var log = new List<Commit>();
             var commitsMap = new Dictionary<string, Commit>();
+
+            var types = new HashSet<string>();
+            var scopes = new HashSet<string>();
 
             Commit currentCommit = null;
             foreach (var line in lines)
@@ -485,6 +524,17 @@ namespace GitApp
                         currentCommit.Message = currentCommit.Message.Trim();
                         log.Add(currentCommit);
                         commitsMap[currentCommit.ID] = currentCommit;
+
+                        var matches = _regex.Matches(currentCommit.Message);
+                        foreach (Match match in matches)
+                        {
+                            var groups = match.Groups;
+                            var type = groups["Type"].Value.Trim();
+                            var scope = groups["Scope"].Value.Trim();
+
+                            types.Add(type);
+                            scopes.Add(scope);
+                        }
                     }
 
                     currentCommit = new Commit();
@@ -513,6 +563,12 @@ namespace GitApp
 
             Log = log;
             RaisePropertyChangedEvent(nameof(Log));
+
+            CommitTypes = types.OrderBy(e => e).ToList();
+            RaisePropertyChangedEvent(nameof(CommitTypes));
+
+            CommitScopes = scopes.OrderBy(e => e).ToList();
+            RaisePropertyChangedEvent(nameof(CommitScopes));
         }
 
         //-----------------------------------------------------------------------
@@ -638,7 +694,23 @@ namespace GitApp
 					}
 				}
 
-				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + CommitMessage + "\"", CurrentDirectory);
+                var message = CommitMessage;
+
+                if (!string.IsNullOrWhiteSpace(CommitType))
+                {
+                    if (!string.IsNullOrWhiteSpace(CommitScope))
+                    {
+                        message = CommitType + "(" + CommitScope + "): " + message;
+                    }
+                    else
+                    {
+                        message = CommitType + ": " + message;
+                    }
+                }
+
+				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + message + "\"", CurrentDirectory);
+                CommitScope = "";
+                CommitType = "";
 				CommitMessage = "";
 
                 CheckStatus();
