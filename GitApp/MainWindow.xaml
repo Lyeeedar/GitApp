@@ -106,7 +106,25 @@
 								Text="{Binding ChangeList.Count, StringFormat={}{0} Changes}" />
 						</DockPanel>
 
-						<Button
+                        <Grid
+                            Visibility="{Binding UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+                            DockPanel.Dock="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition
+                                    Width="*" />
+                                <ColumnDefinition
+                                    Width="auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Text="{Binding UndoableLastCommit}" />
+                            <Button
+                                Grid.Column="1"
+                                Command="{Binding UndoCMD}"
+                                Content="Undo" />
+                        </Grid>
+
+                        <Button
 							IsEnabled="{Binding CanCommit}"
 							DockPanel.Dock="Bottom"
 							Content="Commit changes"
@@ -136,8 +154,6 @@
 							    Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
                         
-						
-
 						<ListView
 							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
 							ItemsSource="{Binding ChangeList}">

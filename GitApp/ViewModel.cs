@@ -199,8 +199,11 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public Command<object> ClearConsoleCMD { get { return new Command<object>((obj) => { CMDLines.Clear(); }); } }
 
-		//-----------------------------------------------------------------------
-		public DeferableObservableCollection<Line> CMDLines { get; } = new DeferableObservableCollection<Line>();
+        //-----------------------------------------------------------------------
+        public Command<object> UndoCMD { get { return new Command<object>((obj) => { Undo(); }); } }
+
+        //-----------------------------------------------------------------------
+        public DeferableObservableCollection<Line> CMDLines { get; } = new DeferableObservableCollection<Line>();
 
 		//-----------------------------------------------------------------------
 		public string ArbitraryCMD
@@ -318,6 +321,9 @@ namespace GitApp
 		}
 
         //-----------------------------------------------------------------------
+        public string UndoableLastCommit { get; set; }
+
+        //-----------------------------------------------------------------------
         public List<Commit> Log { get; set; }
 
         //-----------------------------------------------------------------------
@@ -382,6 +388,7 @@ namespace GitApp
 
         //-----------------------------------------------------------------------
         bool checkingStatus = false;
+        string lastStatus = null;
 		public void CheckStatus()
 		{
             var windowActive = true;//Application.Current?.MainWindow?.IsActive ?? false;
@@ -417,12 +424,16 @@ namespace GitApp
 				}
 			};
 
+            var status = new StringBuilder();
+
 			ProcessUtils.ExecuteCmd(
 				"git status",
 				CurrentDirectory,
 				(output) =>
 				{
-					NotARepo = false;
+                    status.AppendLine(output);
+
+                    NotARepo = false;
 
 					if (output.StartsWith("On branch"))
 					{
@@ -468,7 +479,9 @@ namespace GitApp
 				},
 				(error) =>
 				{
-					if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
+                    status.AppendLine(error);
+
+                    if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
 					{
 						NotARepo = true;
 						Branch = "Not a Repo";
@@ -495,6 +508,14 @@ namespace GitApp
             NumberCommitsToPush = newNumberCommitsToPush;
 
             checkingStatus = false;
+
+            var statusStr = status.ToString();
+            if (statusStr != lastStatus)
+            {
+                lastStatus = statusStr;
+
+                GetLog();
+            }
         }
 
         //-----------------------------------------------------------------------
@@ -569,6 +590,16 @@ namespace GitApp
 
             CommitScopes = scopes.OrderBy(e => e).ToList();
             RaisePropertyChangedEvent(nameof(CommitScopes));
+
+            if (log.Count > 0 && log[0].IsLocal)
+            {
+                UndoableLastCommit = log[0].Message;
+            }
+            else
+            {
+                UndoableLastCommit = null;
+            }
+            RaisePropertyChangedEvent(nameof(UndoableLastCommit));
         }
 
         //-----------------------------------------------------------------------
@@ -780,8 +811,29 @@ namespace GitApp
 			RaisePropertyChangedEvent(nameof(SelectedDiff));
 		}
 
-		//-----------------------------------------------------------------------
-		public void SafeBeginInvoke(Action func)
+        //-----------------------------------------------------------------------
+        public void Undo()
+        {
+            ProcessUtils.ExecuteCmdBlocking("git reset --soft HEAD~1", CurrentDirectory);
+
+            var matches = _regex.Matches(UndoableLastCommit);
+            foreach (Match match in matches)
+            {
+                var groups = match.Groups;
+                var type = groups["Type"].Value.Trim();
+                var scope = groups["Scope"].Value.Trim();
+                var message = groups["Description"].Value.Trim();
+
+                CommitType = type;
+                CommitScope = scope;
+                CommitMessage = message;
+            }
+
+            CheckStatus();
+        }
+
+        //-----------------------------------------------------------------------
+        public void SafeBeginInvoke(Action func)
 		{
 			Application.Current?.Dispatcher.BeginInvoke(new Action(() => { func(); }));
 		}
