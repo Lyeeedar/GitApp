@@ -160,7 +160,7 @@
 						<ListView
 							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
 							ItemsSource="{Binding ChangeList}">
-							<ListBox.ItemContainerStyle>
+                            <ListView.ItemContainerStyle>
 								<Style
 									TargetType="{x:Type ListViewItem}"
 									BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -168,7 +168,7 @@
 										Property="HorizontalContentAlignment"
 										Value="Stretch" />
 								</Style>
-							</ListBox.ItemContainerStyle>
+							</ListView.ItemContainerStyle>
 							<ListView.ItemTemplate>
 								<DataTemplate>
 									<DockPanel
@@ -192,40 +192,71 @@
 				<TabItem
 					Header="History">
 					<ListView
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 						SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
 						ItemsSource="{Binding Log}">
-						<ListView.ItemTemplate>
+                        <ListView.ItemContainerStyle>
+                            <Style
+									TargetType="{x:Type ListViewItem}"
+									BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                <Setter
+										Property="HorizontalContentAlignment"
+										Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
 							<DataTemplate>
                                 <Grid
-                                    Margin="5"
                                     ToolTip="{Binding Message}">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition
-                                            Height="auto" />
-                                        <RowDefinition
-                                            Height="auto" />
-                                    </Grid.RowDefinitions>
+                                    <Grid
+                                        Margin="5">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition
+                                                Height="auto" />
+                                            <RowDefinition
+                                                Height="auto" />
+                                        </Grid.RowDefinitions>
 
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition
-                                            Width="*" />
-                                        <ColumnDefinition
-                                            Width="auto" />
-                                    </Grid.ColumnDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition
+                                                Width="*" />
+                                            <ColumnDefinition
+                                                Width="auto" />
+                                        </Grid.ColumnDefinitions>
                                     
-                                    <TextBlock
-									    Text="{Binding Title}" />
-                                    <TextBlock
-                                        Grid.Row="1"
-                                        Opacity="0.5"
-									    Text="{Binding Author}" />
+                                        <TextBlock
+									        Text="{Binding Title}" />
+                                        <TextBlock
+                                            Grid.Row="1"
+                                            Opacity="0.5"
+									        Text="{Binding Author}" />
 
-                                    <TextBlock
-                                        Visibility="{Binding IsLocal, Converter={local:ValueTypeConverter}}"
-                                        Grid.Column="1"
-                                        Grid.RowSpan="2"
-                                        Foreground="Green"
-                                        Text="Local" />
+                                        <TextBlock
+                                            Visibility="{Binding IsLocal, Converter={local:ValueTypeConverter}}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Grid.Column="1"
+                                            Grid.RowSpan="2"
+                                            Foreground="Green"
+                                            Text="Local" />
+                                    </Grid>
+                                    
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter 
+                                               Property="Background"
+                                               Value="Transparent" />         
+                                            <Style.Triggers>
+                                                <DataTrigger 
+                                                    Binding="{Binding IsLocal}" 
+                                                    Value="True">       
+                                                    <Setter 
+                                                       Property="Background" 
+                                                       Value="{StaticResource BackgroundDarkBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
                                 </Grid>
 								
 							</DataTemplate>
