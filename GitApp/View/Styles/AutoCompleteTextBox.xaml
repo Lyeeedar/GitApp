@@ -59,7 +59,7 @@
 								BorderThickness="1"
 								BorderBrush="{x:Static SystemColors.WindowFrameBrush}"
 								Background="{StaticResource WindowBackgroundBrush}">
-								<ListBox
+								<ListView
 									x:Name="PART_ListBox"
 									Background="{TemplateBinding Background}"
 									BorderBrush="{TemplateBinding BorderBrush}"

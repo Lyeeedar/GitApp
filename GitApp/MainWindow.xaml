@@ -131,6 +131,10 @@
 							Content="Commit changes"
 							Command="{Binding CommitCMD}" />
 
+						<local:MultilineTextEditor
+							DockPanel.Dock="Bottom"
+							Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
 						<Grid
 							DockPanel.Dock="Bottom">
 							<Grid.ColumnDefinitions>
@@ -138,23 +142,19 @@
 									Width="*" />
 								<ColumnDefinition
 									Width="*" />
-								<ColumnDefinition
-									Width="3*" />
 							</Grid.ColumnDefinitions>
 
 							<local:AutoCompleteTextBox
 								Grid.Column="0"
 								ItemsSource="{Binding CommitTypes}"
+								PromptText="Type"
 								Text="{Binding CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
 							<local:AutoCompleteTextBox
 								Grid.Column="1"
 								ItemsSource="{Binding CommitScopes}"
+								PromptText="Scope"
 								Text="{Binding CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-							<local:MultilineTextEditor
-								Grid.Column="2"
-								Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 						</Grid>
 
 						<ListView
