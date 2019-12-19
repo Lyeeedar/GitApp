@@ -553,6 +553,7 @@ namespace GitApp
 
             var status = new StringBuilder();
 
+			ProcessUtils.ExecuteCmdBlocking("git fetch", CurrentDirectory);
 			ProcessUtils.ExecuteCmd(
 				"git status",
 				CurrentDirectory,
