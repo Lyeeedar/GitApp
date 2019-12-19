@@ -18,7 +18,22 @@ namespace GitApp
 		{
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			ExecuteCmd(cmd, workingDirectory, (line) => { output.AppendLine(line); }, (line) => { error.AppendLine(line); }, null);
+			ExecuteCmd(cmd, workingDirectory, 
+                (line) => 
+                {
+                    output.AppendLine(line);
+                }, 
+                (line) =>
+                {
+                    if (line.StartsWith("fatal"))
+                    {
+                        error.AppendLine(line);
+                    }
+                    else
+                    {
+                        output.AppendLine(line);
+                    }
+                }, null);
 
 			if (error.Length > 0)
 			{

@@ -196,8 +196,38 @@
 						ItemsSource="{Binding Log}">
 						<ListView.ItemTemplate>
 							<DataTemplate>
-								<TextBlock
-									Text="{Binding Message}" />
+                                <Grid
+                                    Margin="5"
+                                    ToolTip="{Binding Message}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition
+                                            Height="auto" />
+                                        <RowDefinition
+                                            Height="auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition
+                                            Width="*" />
+                                        <ColumnDefinition
+                                            Width="auto" />
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock
+									    Text="{Binding Title}" />
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Opacity="0.5"
+									    Text="{Binding Author}" />
+
+                                    <TextBlock
+                                        Visibility="{Binding IsLocal, Converter={local:ValueTypeConverter}}"
+                                        Grid.Column="1"
+                                        Grid.RowSpan="2"
+                                        Foreground="Green"
+                                        Text="Local" />
+                                </Grid>
+								
 							</DataTemplate>
 						</ListView.ItemTemplate>
 					</ListView>

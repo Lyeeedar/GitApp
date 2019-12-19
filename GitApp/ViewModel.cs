@@ -73,6 +73,8 @@ namespace GitApp
         public string Date { get; set; }
         public string Message { get; set; }
 
+        public string Title { get { return Message.Split('\n')[0].Trim(); } }
+
         public bool IsLocal { get; set; }
 
         public Dictionary<string, List<Line>> CommitContents
