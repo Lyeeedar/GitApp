@@ -451,11 +451,11 @@
 
 							<ListView
 								SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
-								ItemsSource="{Binding SelectedCommit.CommitContents.Keys}">
+								ItemsSource="{Binding SelectedCommit.CommitContents}">
 								<ListView.ItemTemplate>
 									<DataTemplate>
 										<TextBlock
-											Text="{Binding }" />
+											Text="{Binding Name}" />
 									</DataTemplate>
 								</ListView.ItemTemplate>
 							</ListView>
@@ -469,16 +469,37 @@
 
 							<ScrollViewer
 								Grid.Column="2">
-								<ItemsControl
-									ItemsSource="{Binding SelectedCommit.SelectedDiff}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<TextBlock
-												Background="{Binding Brush}"
-												Text="{Binding Text}" />
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition
+											Width="*" />
+										<ColumnDefinition
+											Width="*" />
+									</Grid.ColumnDefinitions>
+
+									<ItemsControl
+										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item1}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<TextBlock
+													Background="{Binding Brush}"
+													Text="{Binding Text}" />
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+
+									<ItemsControl
+										Grid.Column="1"
+										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item2}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<TextBlock
+													Background="{Binding Brush}"
+													Text="{Binding Text}" />
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</Grid>
 							</ScrollViewer>
 						</Grid>
 					</Grid>

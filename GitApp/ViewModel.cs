@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -77,22 +78,28 @@ namespace GitApp
 
 		public bool IsLocal { get; set; }
 
-		public Dictionary<string, Tuple<List<Line>, List<Line>>> CommitContents
+		public class File : NotifyPropertyChanged
+		{
+			public string Name { get; set; }
+			public Tuple<List<Line>, List<Line>> Contents { get; set; }
+		}
+
+		public List<File> CommitContents
 		{
 			get
 			{
 				if (m_commitContents == null)
 				{
-					m_commitContents = new Dictionary<string, Tuple<List<Line>, List<Line>>>();
+					m_commitContents = new List<File>();
 					GetCommitContents();
 				}
 
 				return m_commitContents;
 			}
 		}
-		private Dictionary<string, Tuple<List<Line>, List<Line>>> m_commitContents;
+		private List<File> m_commitContents;
 
-		public string SelectedFile
+		public File SelectedFile
 		{
 			get { return m_selectedFile; }
 			set
@@ -100,23 +107,9 @@ namespace GitApp
 				m_selectedFile = value;
 
 				RaisePropertyChangedEvent();
-				RaisePropertyChangedEvent(nameof(SelectedDiff));
 			}
 		}
-		private string m_selectedFile;
-
-		public Tuple<List<Line>, List<Line>> SelectedDiff
-		{
-			get
-			{
-				if (m_selectedFile == null)
-				{
-					return null;
-				}
-
-				return m_commitContents[m_selectedFile];
-			}
-		}
+		private File m_selectedFile;
 
 		public ViewModel ViewModel { get; set; }
 
@@ -130,11 +123,15 @@ namespace GitApp
 			var rawContents = ProcessUtils.ExecuteCmdBlocking("git show " + ID, ViewModel.CurrentDirectory);
 			var lines = rawContents.Split('\n');
 
-			Action<string, string> processFile = (file, rawDiff) => 
+			Action<string, string> processFile = (filePath, rawDiff) => 
 			{
+				var file = new File();
+				file.Name = filePath;
+				file.Contents = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
+
 				lock (m_commitContents)
 				{
-					m_commitContents[file] = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
+					m_commitContents.Add(file);
 				}
 				Task.Run(() =>
 				{
@@ -144,9 +141,9 @@ namespace GitApp
 					{
 						lock (m_commitContents)
 						{
-							m_commitContents[file] = diff;
+							file.Contents = diff;
 
-							RaisePropertyChangedEvent(nameof(CommitContents));
+							file.RaisePropertyChangedEvent(nameof(File.Contents));
 						}
 					});
 				});
