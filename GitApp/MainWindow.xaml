@@ -405,16 +405,37 @@
 					<Grid>
 						<ScrollViewer
 							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}}">
-							<ItemsControl
-								ItemsSource="{Binding SelectedDiff}">
-								<ItemsControl.ItemTemplate>
-									<DataTemplate>
-										<TextBlock
-											Background="{Binding Brush}"
-											Text="{Binding Text}" />
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition
+										Width="*" />
+									<ColumnDefinition
+										Width="*" />
+								</Grid.ColumnDefinitions>
+								
+								<ItemsControl
+									ItemsSource="{Binding SelectedDiff.Item1}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<TextBlock
+												Background="{Binding Brush}"
+												Text="{Binding Text}" />
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+								
+								<ItemsControl
+									Grid.Column="1"
+									ItemsSource="{Binding SelectedDiff.Item2}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<TextBlock
+												Background="{Binding Brush}"
+												Text="{Binding Text}" />
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</Grid>
 						</ScrollViewer>
 
 						<Grid

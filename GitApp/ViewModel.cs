@@ -77,20 +77,20 @@ namespace GitApp
 
 		public bool IsLocal { get; set; }
 
-		public Dictionary<string, List<Line>> CommitContents
+		public Dictionary<string, Tuple<List<Line>, List<Line>>> CommitContents
 		{
 			get
 			{
 				if (m_commitContents == null)
 				{
-					m_commitContents = new Dictionary<string, List<Line>>();
+					m_commitContents = new Dictionary<string, Tuple<List<Line>, List<Line>>>();
 					GetCommitContents();
 				}
 
 				return m_commitContents;
 			}
 		}
-		private Dictionary<string, List<Line>> m_commitContents;
+		private Dictionary<string, Tuple<List<Line>, List<Line>>> m_commitContents;
 
 		public string SelectedFile
 		{
@@ -105,7 +105,7 @@ namespace GitApp
 		}
 		private string m_selectedFile;
 
-		public List<Line> SelectedDiff
+		public Tuple<List<Line>, List<Line>> SelectedDiff
 		{
 			get
 			{
@@ -134,7 +134,7 @@ namespace GitApp
 			{
 				lock (m_commitContents)
 				{
-					m_commitContents[file] = new List<Line>();
+					m_commitContents[file] = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
 				}
 				Task.Run(() =>
 				{
@@ -186,8 +186,11 @@ namespace GitApp
 	{
 		//-----------------------------------------------------------------------
 		private static SolidColorBrush RemovedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 50, 50));
-		private static SolidColorBrush ModifiedBrush = new SolidColorBrush(Color.FromArgb(50, 50, 255, 50));
+		private static SolidColorBrush AddedBrush = new SolidColorBrush(Color.FromArgb(50, 50, 255, 50));
+		private static SolidColorBrush ModifiedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 255, 50));
 		private static SolidColorBrush GreyBrush = new SolidColorBrush(Color.FromArgb(50, 150, 150, 150));
+		private static SolidColorBrush DarkGreyBrush = new SolidColorBrush(Color.FromArgb(50, 100, 100, 100));
+
 
 		//-----------------------------------------------------------------------
 		public string ProjectName
@@ -337,7 +340,7 @@ namespace GitApp
 		private Change m_selectedChange;
 
 		//-----------------------------------------------------------------------
-		public List<Line> SelectedDiff { get; set; }
+		public Tuple<List<Line>, List<Line>> SelectedDiff { get; set; }
 
 		//-----------------------------------------------------------------------
 		public Commit SelectedCommit
@@ -907,7 +910,7 @@ namespace GitApp
 		{
 			if (SelectedChange == null)
 			{
-				SelectedDiff = new List<Line>();
+				SelectedDiff = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
 				RaisePropertyChangedEvent(nameof(SelectedDiff));
 				return;
 			}
@@ -919,11 +922,20 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		public List<Line> ParseDiff(string rawDiff)
+		enum DiffType
+		{
+			BEFORE,
+			AFTER,
+			BOTH
+		}
+
+		//-----------------------------------------------------------------------
+		public Tuple<List<Line>, List<Line>> ParseDiff(string rawDiff)
 		{
 			var strlines = rawDiff.Split('\n');
 
-			var lines = new List<Line>();
+			var beforelines = new List<Line>();
+			var afterlines = new List<Line>();
 
 			var isDiff = false;
 			foreach (var strLine in strlines)
@@ -931,6 +943,9 @@ namespace GitApp
 				if (strLine == "") continue;
 
 				var lineBrush = Brushes.Transparent;
+				var type = DiffType.BOTH;
+				var line = strLine.Trim();
+
 				if (strLine[0] == '@')
 				{
 					isDiff = true;
@@ -938,20 +953,109 @@ namespace GitApp
 				}
 				else if (strLine[0] == '+')
 				{
-					lineBrush = ModifiedBrush;
+					lineBrush = AddedBrush;
+					type = DiffType.AFTER;
 				}
 				else if (strLine[0] == '-')
 				{
 					lineBrush = RemovedBrush;
+					type = DiffType.BEFORE;
 				}
 
 				if (isDiff)
 				{
-					lines.Add(new Line(strLine.Trim(), lineBrush));
+					if (type == DiffType.AFTER)
+					{
+						beforelines.Add(new Line("", lineBrush));
+						afterlines.Add(new Line(line, lineBrush));
+					}
+					else if (type == DiffType.BEFORE)
+					{
+						beforelines.Add(new Line(line, lineBrush));
+						afterlines.Add(new Line("", lineBrush));
+					}
+					else
+					{
+						beforelines.Add(new Line(line, lineBrush));
+						afterlines.Add(new Line(line, lineBrush));
+					}
 				}
 			}
 
-			return lines;
+			var removeStart = 0;
+			var addStart = 0;
+			var inRemove = false;
+			var inAdd = false;
+			for (int i = 0; i < afterlines.Count; i++)
+			{
+				if (afterlines[i].Brush == AddedBrush)
+				{
+					if (!inAdd)
+					{
+						addStart = i;
+					}
+
+					inAdd = true;
+				}
+				else if (afterlines[i].Brush == RemovedBrush)
+				{
+					if (!inRemove)
+					{
+						removeStart = i;
+					}
+
+					inRemove = true;
+				}
+				else
+				{
+					if (inAdd && inRemove)
+					{
+						// collapse blocks
+						var addedLines = new List<Line>();
+						var removedLines = new List<Line>();
+
+						for (int ii = removeStart; ii < i; ii++)
+						{
+							if (ii < addStart)
+							{
+								var line = beforelines[removeStart];
+								line.Brush = ModifiedBrush;
+								removedLines.Add(line);
+							}
+							else
+							{
+								var line = afterlines[removeStart];
+								line.Brush = ModifiedBrush;
+								addedLines.Add(line);
+							}
+
+							beforelines.RemoveAt(removeStart);
+							afterlines.RemoveAt(removeStart);
+						}
+
+						while (removedLines.Count < addedLines.Count)
+						{
+							removedLines.Add(new Line("", DarkGreyBrush));
+						}
+
+						while (addedLines.Count < removedLines.Count)
+						{
+							addedLines.Add(new Line("", DarkGreyBrush));
+						}
+
+						for (int ii = 0; ii < removedLines.Count; ii++)
+						{
+							beforelines.Insert(removeStart + ii, removedLines[ii]);
+							afterlines.Insert(removeStart + ii, addedLines[ii]);
+						}
+					}
+
+					inAdd = false;
+					inRemove = false;
+				}
+			}
+
+			return new Tuple<List<Line>, List<Line>>(beforelines, afterlines);
 		}
 
 		//-----------------------------------------------------------------------
