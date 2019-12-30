@@ -927,128 +927,118 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		public class DiffBlock
+		{
+			public List<string> Lines { get; } = new List<string>();
+			public Brush Brush { get; set; }
+		}
+
+		//-----------------------------------------------------------------------
 		public Tuple<List<Line>, List<Line>> ParseDiff(string rawDiff)
 		{
 			var strlines = rawDiff.Split('\n');
 
-			var beforelines = new List<Line>();
-			var afterlines = new List<Line>();
+			var blocks = new List<DiffBlock>();
 
 			var isDiff = false;
+			DiffBlock currentBlock = new DiffBlock();
+			var currentBlockType = ' ';
+			var currentBlockBrush = Brushes.Transparent;
 			foreach (var strLine in strlines)
 			{
 				if (strLine == "") continue;
 
-				var lineBrush = Brushes.Transparent;
-				var type = DiffType.BOTH;
-				var line = strLine.Trim();
+				var blockType = strLine[0];
+				if (blockType != currentBlockType)
+				{
+					currentBlock.Brush = currentBlockBrush;
+					blocks.Add(currentBlock);
+					currentBlockType = blockType;
+
+					currentBlock = new DiffBlock();
+				}
 
 				if (strLine[0] == '@')
 				{
 					isDiff = true;
-					lineBrush = GreyBrush;
+					currentBlockBrush = GreyBrush;
 				}
 				else if (strLine[0] == '+')
 				{
-					lineBrush = AddedBrush;
-					type = DiffType.AFTER;
+					currentBlockBrush = ModifiedBrush;
 				}
 				else if (strLine[0] == '-')
 				{
-					lineBrush = RemovedBrush;
-					type = DiffType.BEFORE;
+					currentBlockBrush = RemovedBrush;
+				}
+				else
+				{
+					currentBlockBrush = Brushes.Transparent;
 				}
 
 				if (isDiff)
 				{
-					if (type == DiffType.AFTER)
-					{
-						beforelines.Add(new Line("", lineBrush));
-						afterlines.Add(new Line(line, lineBrush));
-					}
-					else if (type == DiffType.BEFORE)
-					{
-						beforelines.Add(new Line(line, lineBrush));
-						afterlines.Add(new Line("", lineBrush));
-					}
-					else
-					{
-						beforelines.Add(new Line(line, lineBrush));
-						afterlines.Add(new Line(line, lineBrush));
-					}
+					currentBlock.Lines.Add(strLine.Trim());
 				}
 			}
 
-			var removeStart = 0;
-			var addStart = 0;
-			var inRemove = false;
-			var inAdd = false;
-			for (int i = 0; i < afterlines.Count; i++)
+			var beforelines = new List<Line>();
+			var afterlines = new List<Line>();
+
+			for (int i = 0; i < blocks.Count; i++)
 			{
-				if (afterlines[i].Brush == AddedBrush)
+				var prevBlock = i > 0 ? blocks[i - 1] : null;
+				var block = blocks[i];
+				var nextBlock = i < blocks.Count - 1 ? blocks[i+1] : null;
+
+				if (prevBlock != null && prevBlock.Brush == RemovedBrush && block.Brush == AddedBrush)
 				{
-					if (!inAdd)
+					foreach (var line in prevBlock.Lines)
 					{
-						addStart = i;
+						beforelines.Add(new Line(line, ModifiedBrush));
 					}
 
-					inAdd = true;
+					foreach (var line in block.Lines)
+					{
+						afterlines.Add(new Line(line, ModifiedBrush));
+					}
+
+					while (beforelines.Count < afterlines.Count)
+					{
+						beforelines.Add(new Line("", DarkGreyBrush));
+					}
+
+					while (afterlines.Count < beforelines.Count)
+					{
+						afterlines.Add(new Line("", DarkGreyBrush));
+					}
 				}
-				else if (afterlines[i].Brush == RemovedBrush)
+				else if (block.Brush == RemovedBrush)
 				{
-					if (!inRemove)
+					if (nextBlock == null || nextBlock.Brush != AddedBrush)
 					{
-						removeStart = i;
+						foreach (var line in block.Lines)
+						{
+							beforelines.Add(new Line(line, block.Brush));
+							afterlines.Add(new Line("", block.Brush));
+						}
 					}
-
-					inRemove = true;
+				}
+				else if (block.Brush == AddedBrush)
+				{
+					foreach (var line in block.Lines)
+					{
+						beforelines.Add(new Line("", block.Brush));
+						afterlines.Add(new Line(line, block.Brush));
+					}
 				}
 				else
 				{
-					if (inAdd && inRemove)
+					foreach (var line in block.Lines)
 					{
-						// collapse blocks
-						var addedLines = new List<Line>();
-						var removedLines = new List<Line>();
-
-						for (int ii = removeStart; ii < i; ii++)
-						{
-							if (ii < addStart)
-							{
-								var line = beforelines[removeStart];
-								line.Brush = ModifiedBrush;
-								removedLines.Add(line);
-							}
-							else
-							{
-								var line = afterlines[removeStart];
-								line.Brush = ModifiedBrush;
-								addedLines.Add(line);
-							}
-
-							beforelines.RemoveAt(removeStart);
-							afterlines.RemoveAt(removeStart);
-						}
-
-						while (removedLines.Count < addedLines.Count)
-						{
-							removedLines.Add(new Line("", DarkGreyBrush));
-						}
-
-						while (addedLines.Count < removedLines.Count)
-						{
-							addedLines.Add(new Line("", DarkGreyBrush));
-						}
-
-						for (int ii = 0; ii < removedLines.Count; ii++)
-						{
-							beforelines.Insert(removeStart + ii, removedLines[ii]);
-							afterlines.Insert(removeStart + ii, addedLines[ii]);
-						}
+						beforelines.Add(new Line(line, block.Brush));
+						afterlines.Add(new Line(line, block.Brush));
 					}
-
-					inAdd = false;
-					inRemove = false;
 				}
 			}
 

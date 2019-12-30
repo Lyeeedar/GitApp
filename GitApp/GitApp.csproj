@@ -67,6 +67,7 @@
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\Future.cs" />
     <Compile Include="Util\NotifyPropertyChanged.cs" />
+    <Compile Include="Util\ObservableDictionary.cs" />
     <Compile Include="Util\OpenFolderDialog.cs" />
     <Compile Include="Util\Pool.cs" />
     <Compile Include="Util\ProcessUtils.cs" />
