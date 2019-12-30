@@ -676,80 +676,90 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void GetLog()
 		{
-			var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
-			var lines = rawLog.Split('\n');
-
-			var log = new List<Commit>();
-			var commitsMap = new Dictionary<string, Commit>();
-
-			var types = new HashSet<string>();
-			var scopes = new HashSet<string>();
-
-			Commit currentCommit = null;
-			foreach (var line in lines)
+			try
 			{
-				if (line.StartsWith("commit "))
+				var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
+				var lines = rawLog.Split('\n');
+
+				var log = new List<Commit>();
+				var commitsMap = new Dictionary<string, Commit>();
+
+				var types = new HashSet<string>();
+				var scopes = new HashSet<string>();
+
+				Commit currentCommit = null;
+				foreach (var line in lines)
 				{
-					if (currentCommit != null)
+					if (line.StartsWith("commit "))
 					{
-						currentCommit.Message = currentCommit.Message.Trim();
-						log.Add(currentCommit);
-						commitsMap[currentCommit.ID] = currentCommit;
-
-						var matches = _regex.Matches(currentCommit.Message);
-						foreach (Match match in matches)
+						if (currentCommit != null)
 						{
-							var groups = match.Groups;
-							var type = groups["Type"].Value.Trim();
-							var scope = groups["Scope"].Value.Trim();
+							currentCommit.Message = currentCommit.Message.Trim();
+							log.Add(currentCommit);
+							commitsMap[currentCommit.ID] = currentCommit;
 
-							types.Add(type);
-							scopes.Add(scope);
+							var matches = _regex.Matches(currentCommit.Message);
+							foreach (Match match in matches)
+							{
+								var groups = match.Groups;
+								var type = groups["Type"].Value.Trim();
+								var scope = groups["Scope"].Value.Trim();
+
+								types.Add(type);
+								scopes.Add(scope);
+							}
 						}
-					}
 
-					currentCommit = new Commit(this);
-					currentCommit.ID = line.Replace("commit", "").Trim();
+						currentCommit = new Commit(this);
+						currentCommit.ID = line.Replace("commit", "").Trim();
+					}
+					else if (line.StartsWith("Author: "))
+					{
+						currentCommit.Author = line.Replace("Author: ", "").Trim();
+					}
+					else if (line.StartsWith("Date: "))
+					{
+						currentCommit.Date = line.Replace("Date: ", "").Trim();
+					}
+					else
+					{
+						currentCommit.Message += line + "\n";
+					}
 				}
-				else if (line.StartsWith("Author: "))
+
+				var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
+				lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+				foreach (var line in lines)
 				{
-					currentCommit.Author = line.Replace("Author: ", "").Trim();
+					commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
 				}
-				else if (line.StartsWith("Date: "))
+
+				Log = log;
+				RaisePropertyChangedEvent(nameof(Log));
+
+				CommitTypes = types.OrderBy(e => e).ToList();
+				RaisePropertyChangedEvent(nameof(CommitTypes));
+
+				CommitScopes = scopes.OrderBy(e => e).ToList();
+				RaisePropertyChangedEvent(nameof(CommitScopes));
+
+				if (log.Count > 0 && log[0].IsLocal)
 				{
-					currentCommit.Date = line.Replace("Date: ", "").Trim();
+					UndoableLastCommit = log[0].Message;
 				}
 				else
 				{
-					currentCommit.Message += line + "\n";
+					UndoableLastCommit = null;
 				}
+				RaisePropertyChangedEvent(nameof(UndoableLastCommit));
 			}
-
-			var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
-			lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-			foreach (var line in lines)
+			catch (Exception e)
 			{
-				commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
+				SafeBeginInvoke(() => 
+				{
+					Message.Show(e.Message, "Failed to get Log");
+				});
 			}
-
-			Log = log;
-			RaisePropertyChangedEvent(nameof(Log));
-
-			CommitTypes = types.OrderBy(e => e).ToList();
-			RaisePropertyChangedEvent(nameof(CommitTypes));
-
-			CommitScopes = scopes.OrderBy(e => e).ToList();
-			RaisePropertyChangedEvent(nameof(CommitScopes));
-
-			if (log.Count > 0 && log[0].IsLocal)
-			{
-				UndoableLastCommit = log[0].Message;
-			}
-			else
-			{
-				UndoableLastCommit = null;
-			}
-			RaisePropertyChangedEvent(nameof(UndoableLastCommit));
 		}
 
 		//-----------------------------------------------------------------------

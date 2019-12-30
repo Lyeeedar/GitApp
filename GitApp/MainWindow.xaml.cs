@@ -21,39 +21,11 @@ namespace GitApp
 	public partial class MainWindow : Window
 	{
 		//-----------------------------------------------------------------------
-		public ViewModel GitViewModel { get; set; } = new ViewModel();
-
-		//-----------------------------------------------------------------------
 		public MainWindow()
 		{
 			InitializeComponent();
 
-			DataContext = GitViewModel;
-		}
-
-		//-----------------------------------------------------------------------
-		private void PullClick(object sender, MouseButtonEventArgs e)
-		{
-			GitViewModel.Pull();
-		}
-
-		//-----------------------------------------------------------------------
-		private void PushClick(object sender, MouseButtonEventArgs e)
-		{
-			GitViewModel.Push();
-		}
-
-		//-----------------------------------------------------------------------
-		private void ArbitraryCMDKeyDown(object sender, KeyEventArgs e)
-		{
-			if (e.Key == Key.Enter)
-			{
-				if (!string.IsNullOrWhiteSpace(GitViewModel.ArbitraryCMD))
-				{
-					GitViewModel.RunArbitraryCommand(GitViewModel.ArbitraryCMD);
-					GitViewModel.ArbitraryCMD = "";
-				}
-			}
+			DataContext = new ViewModelView();
 		}
 	}
 }
