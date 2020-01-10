@@ -21,11 +21,13 @@ namespace GitApp
 	public partial class ViewModelView : UserControl
 	{
 		//-----------------------------------------------------------------------
-		public ViewModel GitViewModel { get; set; } = new ViewModel();
+		public ViewModel GitViewModel { get; set; }
 
 		//-----------------------------------------------------------------------
 		public ViewModelView()
 		{
+			GitViewModel = new ViewModel();
+
 			InitializeComponent();
 
 			DataContext = GitViewModel;

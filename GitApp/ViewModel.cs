@@ -10,6 +10,10 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Media;
 using System.Xml.Serialization;
+using ToastNotifications;
+using ToastNotifications.Lifetime;
+using ToastNotifications.Messages;
+using ToastNotifications.Position;
 using WPFFolderBrowser;
 
 namespace GitApp
@@ -469,8 +473,26 @@ namespace GitApp
 		public List<Commit> Log { get; set; }
 
 		//-----------------------------------------------------------------------
+		public Notifier ToastNotifier { get; set; }
+
+		//-----------------------------------------------------------------------
 		public ViewModel()
 		{
+			ToastNotifier = new Notifier(cfg =>
+			{
+				cfg.PositionProvider = new WindowPositionProvider(
+					parentWindow: Application.Current.MainWindow,
+					corner: Corner.BottomRight,
+					offsetX: 10,
+					offsetY: 10);
+
+				cfg.LifetimeSupervisor = new TimeAndCountBasedLifetimeSupervisor(
+					notificationLifetime: TimeSpan.FromSeconds(15),
+					maximumNotificationCount: MaximumNotificationCount.FromCount(5));
+
+				cfg.Dispatcher = Application.Current.Dispatcher;
+			});
+
 			if (File.Exists(SettingsPath))
 			{
 				using (var filestream = File.Open(SettingsPath, FileMode.Open, FileAccess.Read))
@@ -791,7 +813,7 @@ namespace GitApp
 			{
 				SafeBeginInvoke(() => 
 				{
-					Message.Show(e.Message, "Failed to get Log");
+					ToastNotifier.ShowError("Get Log failed:\n" + e.Message);
 				});
 			}
 		}
@@ -828,6 +850,7 @@ namespace GitApp
 						SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(error, Brushes.Red));
+							failed += error;
 						});
 					},
 					null);
@@ -836,7 +859,14 @@ namespace GitApp
 				{
 					SafeBeginInvoke(() =>
 					{
-						Message.Show(failed, "Push failed");
+						ToastNotifier.ShowError(failed);
+					});
+				}
+				else
+				{
+					SafeBeginInvoke(() =>
+					{
+						ToastNotifier.ShowSuccess("Push complete");
 					});
 				}
 
@@ -882,6 +912,7 @@ namespace GitApp
 						SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(error, Brushes.Red));
+							failed += error;
 						});
 					},
 					null);
@@ -890,7 +921,14 @@ namespace GitApp
 				{
 					SafeBeginInvoke(() =>
 					{
-						Message.Show(failed, "Pull failed");
+						ToastNotifier.ShowError(failed);
+					});
+				}
+				else
+				{
+					SafeBeginInvoke(() =>
+					{
+						ToastNotifier.ShowSuccess("Pull complete");
 					});
 				}
 
@@ -939,10 +977,15 @@ namespace GitApp
 				CommitMessage = "";
 
 				CheckStatus();
+
+				SafeBeginInvoke(() =>
+				{
+					ToastNotifier.ShowSuccess("Commit complete");
+				});
 			}
 			catch (Exception ex)
 			{
-				Message.Show(ex.Message, "Commit failed");
+				ToastNotifier.ShowError(ex.Message);
 			}
 		}
 
