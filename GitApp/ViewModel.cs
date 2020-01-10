@@ -575,6 +575,8 @@ namespace GitApp
 
 			var status = new StringBuilder();
 
+			var preparedToReadDivergence = false;
+			var preparedToReadUntracked = false;
 			ProcessUtils.ExecuteCmdBlocking("git fetch", CurrentDirectory);
 			ProcessUtils.ExecuteCmd(
 				"git status",
@@ -625,6 +627,34 @@ namespace GitApp
 						var change = new Change(path, ChangeType.DELETED, this);
 
 						addChange(change);
+					}
+					else if (output.StartsWith("Your branch and 'origin/master' have diverged"))
+					{
+						preparedToReadDivergence = true;
+					}
+					else if (preparedToReadDivergence && output.StartsWith("and have"))
+					{
+						var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
+						var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
+
+						newNumberCommitsToPull = int.Parse(split[1]);
+						newNumberCommitsToPush = int.Parse(split[0]);
+
+						preparedToReadDivergence = false;
+					}
+					else if (output.StartsWith("Untracked files:"))
+					{
+						preparedToReadUntracked = true;
+					}
+					else if (preparedToReadUntracked && !output.Trim().StartsWith("(use") && !output.Trim().StartsWith("no changes"))
+					{
+						if (File.Exists(Path.Combine(CurrentDirectory, output.Trim())))
+						{
+							var path = output.Trim();
+							var change = new Change(path, ChangeType.UNTRACKED, this);
+
+							addChange(change);
+						}
 					}
 				},
 				(error) =>
@@ -1004,7 +1034,7 @@ namespace GitApp
 				return;
 			}
 
-			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff " + SelectedChange.File, CurrentDirectory);
+			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff \"" + SelectedChange.File + "\"", CurrentDirectory);
 
 			SelectedDiff = ParseDiff(rawDiff);
 			RaisePropertyChangedEvent(nameof(SelectedDiff));
