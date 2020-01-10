@@ -646,15 +646,19 @@ namespace GitApp
 					{
 						preparedToReadUntracked = true;
 					}
-					else if (preparedToReadUntracked && !output.Trim().StartsWith("(use") && !output.Trim().StartsWith("no changes"))
+					else if (preparedToReadUntracked)
 					{
-						if (File.Exists(Path.Combine(CurrentDirectory, output.Trim())))
+						try
 						{
-							var path = output.Trim();
-							var change = new Change(path, ChangeType.UNTRACKED, this);
+							if (File.Exists(Path.Combine(CurrentDirectory, output.Trim())))
+							{
+								var path = output.Trim();
+								var change = new Change(path, ChangeType.UNTRACKED, this);
 
-							addChange(change);
+								addChange(change);
+							}
 						}
+						catch (Exception ex) { }
 					}
 				},
 				(error) =>
