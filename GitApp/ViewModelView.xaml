@@ -30,205 +30,194 @@
 		</Style>
 	</UserControl.Resources>
 
-	<DockPanel>
-		<Menu
-			DockPanel.Dock="Top">
-			<MenuItem
-				Header="_Project">
-				<MenuItem
-					Header="_Change Directory"
-					Command="{Binding ChangeDirectoryCMD}" />
-			</MenuItem>
-		</Menu>
-
-		<Grid>
-			<Grid.RowDefinitions>
-				<RowDefinition
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition
 					Height="75" />
-				<RowDefinition
+			<RowDefinition
 					Height="*" />
-			</Grid.RowDefinitions>
+		</Grid.RowDefinitions>
 
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition
 					Width="*" />
-				<ColumnDefinition
+			<ColumnDefinition
 					Width="auto" />
-				<ColumnDefinition
+			<ColumnDefinition
 					Width="3*" />
-			</Grid.ColumnDefinitions>
+		</Grid.ColumnDefinitions>
 
-			<Border
+		<Border
 				Style="{StaticResource ButtonBorder}">
-				<DockPanel>
-					<Image
+			<DockPanel>
+				<Image
 						Margin="10"
 						DockPanel.Dock="Left"
 						Source="/Resources/Branch.png"
 						Width="16"
 						Height="16" />
-					<Image
+				<Image
 						Margin="10"
 						DockPanel.Dock="Right"
 						Source="/Resources/DownArrow.png"
 						Width="16"
 						Height="16" />
-					<StackPanel
+				<StackPanel
 						Margin="10"
 						VerticalAlignment="Center"
 						Orientation="Vertical">
-						<TextBlock
+					<TextBlock
 							FontWeight="Bold"
 							Text="{Binding ProjectName}" />
-						<TextBlock
+					<TextBlock
 							Opacity="0.7"
 							Text="{Binding Branch}" />
-					</StackPanel>
-				</DockPanel>
-			</Border>
+				</StackPanel>
+			</DockPanel>
+		</Border>
 
-			<TabControl
+		<TabControl
 				SelectedIndex="{Binding SelectedTab, Mode=OneWayToSource}"
 				Grid.Row="1">
-				<TabItem
+			<TabItem
 					Header="Changes">
-					<DockPanel>
-						<DockPanel
+				<DockPanel>
+					<DockPanel
 							Margin="6,5,0,5"
 							DockPanel.Dock="Top">
-							<CheckBox
+						<CheckBox
 								DockPanel.Dock="Left"
 								IsChecked="{Binding ChangeMultiSelect, Mode=TwoWay}" />
-							<TextBlock
+						<TextBlock
 								HorizontalAlignment="Center"
 								Text="{Binding ChangeList.Count, StringFormat={}{0} Changes}" />
-						</DockPanel>
+					</DockPanel>
 
-						<Grid
+					<Grid
 							Visibility="{Binding UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 							DockPanel.Dock="Bottom">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition
 									Width="*" />
-								<ColumnDefinition
+							<ColumnDefinition
 									Width="auto" />
-							</Grid.ColumnDefinitions>
+						</Grid.ColumnDefinitions>
 
-							<TextBlock
+						<TextBlock
 								Text="{Binding UndoableLastCommit}" />
-							<Button
+						<Button
 								Grid.Column="1"
 								Command="{Binding UndoCMD}"
 								Content="Undo" />
-						</Grid>
+					</Grid>
 
-						<Button
+					<Button
 							IsEnabled="{Binding CanCommit}"
 							DockPanel.Dock="Bottom"
 							Content="Commit changes"
 							Command="{Binding CommitCMD}" />
 
-						<local:MultilineTextEditor
+					<local:MultilineTextEditor
 							DockPanel.Dock="Bottom"
 							Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-						<Grid
+					<Grid
 							DockPanel.Dock="Bottom">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition
 									Width="*" />
-								<ColumnDefinition
+							<ColumnDefinition
 									Width="*" />
-							</Grid.ColumnDefinitions>
+						</Grid.ColumnDefinitions>
 
-							<local:AutoCompleteTextBox
+						<local:AutoCompleteTextBox
 								Grid.Column="0"
 								ItemsSource="{Binding CommitTypes}"
 								PromptText="Type"
 								Text="{Binding CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-							<local:AutoCompleteTextBox
+						<local:AutoCompleteTextBox
 								Grid.Column="1"
 								ItemsSource="{Binding CommitScopes}"
 								PromptText="Scope"
 								Text="{Binding CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-						</Grid>
+					</Grid>
 
-						<ListView
+					<ListView
 							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
 							ItemsSource="{Binding ChangeList}">
-							<ListView.ItemContainerStyle>
-								<Style
-									TargetType="{x:Type ListViewItem}"
-									BasedOn="{StaticResource {x:Type ListViewItem}}">
-									<Setter
-										Property="HorizontalContentAlignment"
-										Value="Stretch" />
-								</Style>
-							</ListView.ItemContainerStyle>
-							<ListView.ItemTemplate>
-								<DataTemplate>
-									<DockPanel
-										Margin="3">
-										<CheckBox
-											VerticalAlignment="Center"
-											DockPanel.Dock="Left"
-											IsChecked="{Binding Added}" />
-										<TextBlock
-											DockPanel.Dock="Right"
-											Text="{Binding ChangeType}"
-											Opacity="0.7" />
-										<TextBlock
-											Text="{Binding File}" />
-									</DockPanel>
-								</DataTemplate>
-							</ListView.ItemTemplate>
-						</ListView>
-					</DockPanel>
-				</TabItem>
-				<TabItem
-					Header="History">
-					<ListView
-						ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-						SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
-						ItemsSource="{Binding Log}">
 						<ListView.ItemContainerStyle>
 							<Style
-								TargetType="{x:Type ListViewItem}"
-								BasedOn="{StaticResource {x:Type ListViewItem}}">
+									TargetType="{x:Type ListViewItem}"
+									BasedOn="{StaticResource {x:Type ListViewItem}}">
 								<Setter
-									Property="HorizontalContentAlignment"
-									Value="Stretch" />
+										Property="HorizontalContentAlignment"
+										Value="Stretch" />
 							</Style>
 						</ListView.ItemContainerStyle>
 						<ListView.ItemTemplate>
 							<DataTemplate>
-								<Grid
+								<DockPanel
+										Margin="3">
+									<CheckBox
+											VerticalAlignment="Center"
+											DockPanel.Dock="Left"
+											IsChecked="{Binding Added}" />
+									<TextBlock
+											DockPanel.Dock="Right"
+											Text="{Binding ChangeType}"
+											Opacity="0.7" />
+									<TextBlock
+											Text="{Binding File}" />
+								</DockPanel>
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
+				</DockPanel>
+			</TabItem>
+			<TabItem
+					Header="History">
+				<ListView
+						ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
+						ItemsSource="{Binding Log}">
+					<ListView.ItemContainerStyle>
+						<Style
+								TargetType="{x:Type ListViewItem}"
+								BasedOn="{StaticResource {x:Type ListViewItem}}">
+							<Setter
+									Property="HorizontalContentAlignment"
+									Value="Stretch" />
+						</Style>
+					</ListView.ItemContainerStyle>
+					<ListView.ItemTemplate>
+						<DataTemplate>
+							<Grid
 									ToolTip="{Binding Message}">
-									<Grid
+								<Grid
 										Margin="5">
-										<Grid.RowDefinitions>
-											<RowDefinition
+									<Grid.RowDefinitions>
+										<RowDefinition
 												Height="auto" />
-											<RowDefinition
+										<RowDefinition
 												Height="auto" />
-										</Grid.RowDefinitions>
+									</Grid.RowDefinitions>
 
-										<Grid.ColumnDefinitions>
-											<ColumnDefinition
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition
 												Width="*" />
-											<ColumnDefinition
+										<ColumnDefinition
 												Width="auto" />
-										</Grid.ColumnDefinitions>
+									</Grid.ColumnDefinitions>
 
-										<TextBlock
+									<TextBlock
 											Text="{Binding Title}" />
-										<TextBlock
+									<TextBlock
 											Grid.Row="1"
 											Opacity="0.5"
 											Text="{Binding Author}" />
 
-										<TextBlock
+									<TextBlock
 											Visibility="{Binding IsLocal, Converter={local:ValueTypeConverter}}"
 											HorizontalAlignment="Right"
 											VerticalAlignment="Center"
@@ -236,34 +225,34 @@
 											Grid.RowSpan="2"
 											Foreground="Green"
 											Text="Local" />
-									</Grid>
-
-									<Grid.Style>
-										<Style
-											TargetType="Grid">
-											<Setter
-												Property="Background"
-												Value="Transparent" />
-											<Style.Triggers>
-												<DataTrigger
-													Binding="{Binding IsLocal}"
-													Value="True">
-													<Setter
-														Property="Background"
-														Value="{StaticResource BackgroundDarkBrush}" />
-												</DataTrigger>
-											</Style.Triggers>
-										</Style>
-									</Grid.Style>
 								</Grid>
 
-							</DataTemplate>
-						</ListView.ItemTemplate>
-					</ListView>
-				</TabItem>
-			</TabControl>
+								<Grid.Style>
+									<Style
+											TargetType="Grid">
+										<Setter
+												Property="Background"
+												Value="Transparent" />
+										<Style.Triggers>
+											<DataTrigger
+													Binding="{Binding IsLocal}"
+													Value="True">
+												<Setter
+														Property="Background"
+														Value="{StaticResource BackgroundDarkBrush}" />
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</Grid.Style>
+							</Grid>
 
-			<GridSplitter
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</TabItem>
+		</TabControl>
+
+		<GridSplitter
 				Background="{StaticResource WindowBackgroundLightBrush}"
 				Grid.Column="1"
 				Grid.RowSpan="2"
@@ -271,265 +260,264 @@
 				VerticalAlignment="Stretch"
 				Width="5" />
 
-			<Grid
+		<Grid
 				Grid.Column="2">
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition
 						Width="200" />
-					<ColumnDefinition
+				<ColumnDefinition
 						Width="*" />
-				</Grid.ColumnDefinitions>
+			</Grid.ColumnDefinitions>
 
-				<Border
+			<Border
 					IsEnabled="{Binding PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PushClick">
-					<DockPanel>
-						<Image
+				<DockPanel>
+					<Image
 							Margin="10"
 							DockPanel.Dock="Left"
 							Source="/Resources/Push.png"
 							Width="16"
 							Height="16" />
-						<Border
+					<Border
 							Margin="5"
 							CornerRadius="10"
 							DockPanel.Dock="Right"
 							VerticalAlignment="Center"
 							Background="{StaticResource BackgroundLightBrush}">
-							<StackPanel
+						<StackPanel
 								Orientation="Horizontal">
-								<TextBlock
+							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
 									Text="{Binding NumberCommitsToPush}" />
-								<Image
+							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
 									Source="/Resources/Push.png"
 									Width="8"
 									Height="8" />
-							</StackPanel>
-						</Border>
-						<TextBlock
+						</StackPanel>
+					</Border>
+					<TextBlock
 							Margin="10"
 							VerticalAlignment="Center"
 							FontWeight="Bold"
 							Text="Push" />
-					</DockPanel>
-				</Border>
+				</DockPanel>
+			</Border>
 
-				<Border
+			<Border
 					IsEnabled="{Binding PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PullClick">
-					<DockPanel>
-						<Image
+				<DockPanel>
+					<Image
 							Margin="10"
 							DockPanel.Dock="Left"
 							Source="/Resources/Pull.png"
 							Width="16"
 							Height="16" />
-						<Border
+					<Border
 							Margin="5"
 							CornerRadius="10"
 							DockPanel.Dock="Right"
 							VerticalAlignment="Center"
 							Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 							Background="{StaticResource BackgroundLightBrush}">
-							<StackPanel
+						<StackPanel
 								Orientation="Horizontal">
-								<TextBlock
+							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
 									Text="{Binding NumberCommitsToPush}" />
-								<Image
+							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
 									Source="/Resources/Push.png"
 									Width="8"
 									Height="8" />
-							</StackPanel>
-						</Border>
-						<Border
+						</StackPanel>
+					</Border>
+					<Border
 							Margin="5"
 							CornerRadius="10"
 							DockPanel.Dock="Right"
 							VerticalAlignment="Center"
 							Background="{StaticResource BackgroundLightBrush}">
-							<StackPanel
+						<StackPanel
 								Orientation="Horizontal">
-								<TextBlock
+							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
 									Text="{Binding NumberCommitsToPull}" />
-								<Image
+							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
 									Source="/Resources/Pull.png"
 									Width="8"
 									Height="8" />
-							</StackPanel>
-						</Border>
-						<TextBlock
+						</StackPanel>
+					</Border>
+					<TextBlock
 							Margin="10"
 							VerticalAlignment="Center"
 							FontWeight="Bold"
 							Text="Pull" />
-					</DockPanel>
-				</Border>
+				</DockPanel>
+			</Border>
 
-				<Border
+			<Border
 					Background="{StaticResource BackgroundDarkBrush}"
 					BorderThickness="2"
 					BorderBrush="{StaticResource BorderDarkBrush}"
 					Visibility="{Binding UpToDate, Converter={local:ValueTypeConverter}}">
-					<TextBlock
+				<TextBlock
 						Margin="20"
 						VerticalAlignment="Center"
 						Opacity="0.7"
 						Text="No Changes" />
-				</Border>
-			</Grid>
+			</Border>
+		</Grid>
 
-			<TabControl
+		<TabControl
 				Grid.Row="1"
 				Grid.Column="2">
-				<TabItem
+			<TabItem
 					Header="Diff">
-					<Grid>
-						<ScrollViewer
+				<Grid>
+					<ScrollViewer
 							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}}">
-							<Grid>
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition
-										Width="*" />
-									<ColumnDefinition
-										Width="*" />
-								</Grid.ColumnDefinitions>
-
-								<ItemsControl
-									ItemsSource="{Binding SelectedDiff.Item1}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<TextBlock
-												Background="{Binding Brush}"
-												Text="{Binding Text}" />
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-
-								<ItemsControl
-									Grid.Column="1"
-									ItemsSource="{Binding SelectedDiff.Item2}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<TextBlock
-												Background="{Binding Brush}"
-												Text="{Binding Text}" />
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-							</Grid>
-						</ScrollViewer>
-
-						<Grid
-							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}, ConverterParameter=Not}">
+						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition
-									Width="*" />
+										Width="*" />
 								<ColumnDefinition
-									Width="auto" />
-								<ColumnDefinition
-									Width="4*" />
+										Width="*" />
 							</Grid.ColumnDefinitions>
 
-							<ListView
-								SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
-								ItemsSource="{Binding SelectedCommit.CommitContents}">
-								<ListView.ItemTemplate>
+							<ItemsControl
+									ItemsSource="{Binding SelectedDiff.Item1}">
+								<ItemsControl.ItemTemplate>
 									<DataTemplate>
 										<TextBlock
-											Text="{Binding Name}" />
+												Background="{Binding Brush}"
+												Text="{Binding Text}" />
 									</DataTemplate>
-								</ListView.ItemTemplate>
-							</ListView>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
 
-							<GridSplitter
+							<ItemsControl
+									Grid.Column="1"
+									ItemsSource="{Binding SelectedDiff.Item2}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<TextBlock
+												Background="{Binding Brush}"
+												Text="{Binding Text}" />
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</Grid>
+					</ScrollViewer>
+
+					<Grid
+							Visibility="{Binding ShowChangesDiff, Converter={local:ValueTypeConverter}, ConverterParameter=Not}">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition
+									Width="*" />
+							<ColumnDefinition
+									Width="auto" />
+							<ColumnDefinition
+									Width="4*" />
+						</Grid.ColumnDefinitions>
+
+						<ListView
+								SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
+								ItemsSource="{Binding SelectedCommit.CommitContents}">
+							<ListView.ItemTemplate>
+								<DataTemplate>
+									<TextBlock
+											Text="{Binding Name}" />
+								</DataTemplate>
+							</ListView.ItemTemplate>
+						</ListView>
+
+						<GridSplitter
 								Background="{StaticResource WindowBackgroundLightBrush}"
 								Grid.Column="1"
 								HorizontalAlignment="Center"
 								VerticalAlignment="Stretch"
 								Width="5" />
 
-							<ScrollViewer
+						<ScrollViewer
 								Grid.Column="2">
-								<Grid>
-									<Grid.ColumnDefinitions>
-										<ColumnDefinition
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition
 											Width="*" />
-										<ColumnDefinition
+									<ColumnDefinition
 											Width="*" />
-									</Grid.ColumnDefinitions>
+								</Grid.ColumnDefinitions>
 
-									<ItemsControl
+								<ItemsControl
 										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item1}">
-										<ItemsControl.ItemTemplate>
-											<DataTemplate>
-												<TextBlock
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<TextBlock
 													Background="{Binding Brush}"
 													Text="{Binding Text}" />
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-									</ItemsControl>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
 
-									<ItemsControl
+								<ItemsControl
 										Grid.Column="1"
 										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item2}">
-										<ItemsControl.ItemTemplate>
-											<DataTemplate>
-												<TextBlock
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<TextBlock
 													Background="{Binding Brush}"
 													Text="{Binding Text}" />
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-									</ItemsControl>
-								</Grid>
-							</ScrollViewer>
-						</Grid>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</Grid>
+						</ScrollViewer>
 					</Grid>
+				</Grid>
 
 
-				</TabItem>
-				<TabItem
+			</TabItem>
+			<TabItem
 					Header="Console">
-					<DockPanel>
-						<DockPanel
+				<DockPanel>
+					<DockPanel
 							DockPanel.Dock="Bottom">
-							<Button
+						<Button
 								DockPanel.Dock="Right"
 								Content="Clear"
 								Command="{Binding ClearConsoleCMD}" />
-							<TextBox
+						<TextBox
 								HorizontalAlignment="Stretch"
 								KeyDown="ArbitraryCMDKeyDown"
 								Text="{Binding ArbitraryCMD, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-						</DockPanel>
-						<ListView
+					</DockPanel>
+					<ListView
 							ItemsSource="{Binding CMDLines}">
-							<ListView.ItemTemplate>
-								<DataTemplate>
-									<TextBlock
+						<ListView.ItemTemplate>
+							<DataTemplate>
+								<TextBlock
 										Text="{Binding Text}"
 										Foreground="{Binding Brush}" />
-								</DataTemplate>
-							</ListView.ItemTemplate>
-						</ListView>
-					</DockPanel>
-				</TabItem>
-			</TabControl>
-		</Grid>
-	</DockPanel>
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
+				</DockPanel>
+			</TabItem>
+		</TabControl>
+	</Grid>
 </UserControl>

@@ -283,16 +283,25 @@ namespace GitApp
 
 				CheckStatus();
 				GetLog();
+
+				RecentProjects.Remove(m_currentDirectory);
+				RecentProjects.Insert(0, m_currentDirectory);
+
+				StoreSetting("RecentProjects", RecentProjects);
+				RaisePropertyChangedEvent(nameof(RecentProjects));
 			}
 		}
 		private string m_currentDirectory;
 
 		//-----------------------------------------------------------------------
-		public string SettingsPath = Path.GetFullPath("Settings.xml");
+		public List<string> RecentProjects { get; set; } = new List<string>();
+
+		//-----------------------------------------------------------------------
+		public string SettingsPath = Path.GetFullPath("GitAppSettings.xml");
 		public SerializableDictionary<string, string> Settings { get; set; }
 
 		//-----------------------------------------------------------------------
-		public Command<object> ChangeDirectoryCMD { get { return new Command<object>((obj) => { ChangeDirectory(); }); } }
+		public Command<string> ChangeDirectoryCMD { get { return new Command<string>((obj) => { ChangeDirectory(obj); }); } }
 
 		//-----------------------------------------------------------------------
 		public Command<object> PullCMD { get { return new Command<object>((obj) => { Pull(); }); } }
@@ -515,6 +524,13 @@ namespace GitApp
 			}
 
 			CurrentDirectory = GetSetting<string>("CurrentDirectory");
+			RecentProjects = 
+				GetSetting<List<string>>("RecentProjects")?
+				.Select(e => Path.GetFullPath(e))
+				.Where(e => Directory.Exists(e))
+				.ToList()
+				?? 
+				new List<string>();
 
 			var timer = new Timer();
 			timer.Elapsed += (e, args) =>
@@ -526,18 +542,26 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		public void ChangeDirectory()
+		public void ChangeDirectory(string dir)
 		{
-			var dlgRoot = new WPFFolderBrowserDialog();
-			dlgRoot.ShowPlacesList = true;
-			dlgRoot.Title = "Git Project";
-			bool? resultRoot = dlgRoot.ShowDialog();
+			if (dir == null)
+			{
+				var dlgRoot = new WPFFolderBrowserDialog();
+				dlgRoot.ShowPlacesList = true;
+				dlgRoot.Title = "Git Project";
+				bool? resultRoot = dlgRoot.ShowDialog();
 
-			if (resultRoot == true)
+				if (resultRoot == true)
+				{
+					dir = dlgRoot.FileName;
+				}
+			}
+
+			if (dir != null)
 			{
 				ProcessUtils.ExecuteCmd(
 					"git rev-parse --show-toplevel",
-					dlgRoot.FileName,
+					dir,
 					(output) =>
 					{
 						CurrentDirectory = output;
@@ -899,6 +923,26 @@ namespace GitApp
 				var failed = "";
 				ProcessUtils.ExecuteCmd(
 					"git pull --rebase",
+					CurrentDirectory,
+					(output) =>
+					{
+						SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(output, Brushes.White));
+						});
+					},
+					(error) =>
+					{
+						SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(error, Brushes.Red));
+							failed += error;
+						});
+					},
+					null);
+
+				ProcessUtils.ExecuteCmd(
+					"git submodule update --init --recursive --force --rebase",
 					CurrentDirectory,
 					(output) =>
 					{
