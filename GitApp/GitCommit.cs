@@ -165,6 +165,11 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void Commit(string CurrentDirectory)
 		{
+			if (ViewModel.GitPush.PushInProgress || ViewModel.GitPull.PullInProgress)
+			{
+				return;
+			}
+
 			ViewModel.CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
 
 			try

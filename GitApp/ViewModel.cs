@@ -199,12 +199,10 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public string ExecuteLoggedCommand(string cmd)
 		{
-			if (GitPush.PushInProgress || GitPull.PullInProgress)
+			Extensions.SafeBeginInvoke(() =>
 			{
-				return null;
-			}
-
-			CMDLines.Add(new Line(cmd, Brushes.LimeGreen));
+				CMDLines.Add(new Line(cmd, Brushes.LimeGreen));
+			});
 
 			var success = "";
 			var failed = "";

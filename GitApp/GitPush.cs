@@ -41,7 +41,7 @@ namespace GitApp
 			{
 				try
 				{
-					ViewModel.ExecuteLoggedCommand("git pull --rebase");
+					ViewModel.ExecuteLoggedCommand("git push");
 
 					Extensions.SafeBeginInvoke(() =>
 					{
@@ -50,10 +50,20 @@ namespace GitApp
 				}
 				catch (Exception ex)
 				{
-					Extensions.SafeBeginInvoke(() =>
+					if (ex.Message.StartsWith("To "))
 					{
-						ViewModel.ToastNotifier.ShowError(ex.Message);
-					});
+						Extensions.SafeBeginInvoke(() =>
+						{
+							ViewModel.ToastNotifier.ShowSuccess("Push complete");
+						});
+					}
+					else
+					{
+						Extensions.SafeBeginInvoke(() =>
+						{
+							ViewModel.ToastNotifier.ShowError(ex.Message);
+						});
+					}
 				}
 
 				Extensions.SafeBeginInvoke(() =>
