@@ -23,7 +23,7 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public MainWindow()
 		{
-			InitializeComponent();
+            InitializeComponent();
 
 			DataContext = new ViewModelView();
 		}
