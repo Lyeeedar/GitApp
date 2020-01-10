@@ -41,7 +41,7 @@ namespace GitApp
 			{
 				try
 				{
-					ViewModel.ExecuteLoggedCommand("git push");
+					ViewModel.ExecuteLoggedCommand("git push --recurse-submodules=on-demand");
 
 					Extensions.SafeBeginInvoke(() =>
 					{

@@ -60,7 +60,7 @@ namespace GitApp
 				GitLog.GetLog(m_currentDirectory);
 
 				RecentProjects.Remove(m_currentDirectory);
-				RecentProjects.Insert(0, m_currentDirectory);
+				RecentProjects.Insert(0, Path.GetFullPath(m_currentDirectory));
 
 				StoreSetting("RecentProjects", RecentProjects);
 				RaisePropertyChangedEvent(nameof(RecentProjects));
@@ -197,8 +197,13 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		public string ExecuteLoggedCommand(string cmd)
+		public string ExecuteLoggedCommand(string cmd, string dir = null)
 		{
+			if (dir == null)
+			{
+				dir = CurrentDirectory;
+			}
+
 			Extensions.SafeBeginInvoke(() =>
 			{
 				CMDLines.Add(new Line(cmd, Brushes.LimeGreen));

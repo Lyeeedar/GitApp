@@ -21,9 +21,16 @@ namespace GitApp
 	//-----------------------------------------------------------------------
 	public class Change : NotifyPropertyChanged
 	{
+		//-----------------------------------------------------------------------
 		public GitCommit ViewModel { get; set; }
+
+		//-----------------------------------------------------------------------
 		public string File { get; set; }
+
+		//-----------------------------------------------------------------------
 		public ChangeType ChangeType { get; set; }
+
+		//-----------------------------------------------------------------------
 		public bool Added
 		{
 			get { return m_added; }
@@ -38,6 +45,10 @@ namespace GitApp
 		}
 		private bool m_added;
 
+		//-----------------------------------------------------------------------
+		public string Submodule { get; set; }
+
+		//-----------------------------------------------------------------------
 		public Change(string file, ChangeType changeType, GitCommit viewModel)
 		{
 			this.File = file;
@@ -45,6 +56,7 @@ namespace GitApp
 			this.ViewModel = viewModel;
 		}
 
+		//-----------------------------------------------------------------------
 		public string Key { get { return File + ChangeType; } }
 	}
 
@@ -112,7 +124,7 @@ namespace GitApp
 				m_selectedChange = value;
 				RaisePropertyChangedEvent();
 
-				ViewModel.GitDiff.GetCurrentDiff(ViewModel.CurrentDirectory);
+				ViewModel.GitDiff.GetCurrentDiff(m_selectedChange.Submodule ?? ViewModel.CurrentDirectory);
 			}
 		}
 		private Change m_selectedChange;
@@ -176,11 +188,17 @@ namespace GitApp
 			{
 				ViewModel.ExecuteLoggedCommand("git reset HEAD -- .");
 
+				var submodules = ChangeList.Where(e => e.Added && e.Submodule != null).Select(e => e.Submodule).Distinct().ToList();
+				foreach (var submodule in submodules)
+				{
+					ViewModel.ExecuteLoggedCommand("git reset HEAD -- .", submodule);
+				}
+
 				foreach (var change in ChangeList)
 				{
 					if (change.Added)
 					{
-						ViewModel.ExecuteLoggedCommand("git add " + change.File);
+						ViewModel.ExecuteLoggedCommand("git add \"" + change.File + "\"", change.Submodule);
 					}
 				}
 
@@ -198,7 +216,13 @@ namespace GitApp
 					}
 				}
 
-				var output = ViewModel.ExecuteLoggedCommand("git commit -m\"" + message + "\"");
+				var commitMessage = "git commit -m\"" + message + "\"";
+				ViewModel.ExecuteLoggedCommand(commitMessage);
+				foreach (var submodule in submodules)
+				{
+					ViewModel.ExecuteLoggedCommand(commitMessage, submodule);
+				}
+
 				CommitScope = "";
 				CommitType = "";
 				CommitMessage = "";
@@ -220,6 +244,10 @@ namespace GitApp
 		public void Undo(string CurrentDirectory)
 		{
 			ProcessUtils.ExecuteCmdBlocking("git reset --soft HEAD~1", CurrentDirectory);
+			foreach (var submodule in ViewModel.GitStatus.Submodules)
+			{
+				ProcessUtils.ExecuteCmdBlocking("git reset --soft HEAD~1", submodule);
+			}
 
 			var matches = GitLog.SemanticCommitRegex.Matches(ViewModel.GitLog.UndoableLastCommit);
 			foreach (Match match in matches)

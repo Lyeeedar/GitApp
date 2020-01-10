@@ -22,6 +22,9 @@ namespace GitApp
 		private string m_branch;
 
 		//-----------------------------------------------------------------------
+		public List<string> Submodules { get; } = new List<string>();
+
+		//-----------------------------------------------------------------------
 		public int NumberCommitsToPull
 		{
 			get { return m_numberCommitsToPull; }
@@ -93,14 +96,27 @@ namespace GitApp
 		string lastStatus = null;
 		public void CheckStatus()
 		{
+			// Check if we are already doing stuff
 			var windowActive = true;//Application.Current?.MainWindow?.IsActive ?? false;
 			if (ViewModel.GitPush.PushInProgress || ViewModel.GitPull.PullInProgress || !windowActive || ProcessUtils.OperationInProgress || checkingStatus)
 			{
 				return;
 			}
-
 			checkingStatus = true;
 
+			// find out what submodules we have
+			var submodules = new List<string>();
+			var submoduleLines = ProcessUtils.ExecuteCmdBlocking("git submodule status", ViewModel.CurrentDirectory).Split('\n');
+			foreach (var submodule in submoduleLines)
+			{
+				if (!string.IsNullOrWhiteSpace(submodule))
+				{
+					var split = submodule.Trim().Split(' ')[1];
+					submodules.Add(Path.Combine(ViewModel.CurrentDirectory, split));
+				}
+			}
+
+			// store old versions to check if we changed
 			var newNumberCommitsToPush = 0;
 			var newNumberCommitsToPull = 0;
 
@@ -113,6 +129,7 @@ namespace GitApp
 			var addedChanges = new HashSet<string>();
 			var changesChanged = false;
 
+			// method to add a change and filter duplicates
 			Action<Change> addChange = (change) =>
 			{
 				if (addedChanges.Contains(change.Key))
@@ -133,113 +150,147 @@ namespace GitApp
 				}
 			};
 
+			// status runner func
 			var status = new StringBuilder();
-
-			var preparedToReadDivergence = false;
-			var preparedToReadUntracked = false;
-			ProcessUtils.ExecuteCmdBlocking("git fetch", ViewModel.CurrentDirectory);
-			ProcessUtils.ExecuteCmd(
-				"git status",
-				ViewModel.CurrentDirectory,
-				(output) =>
-				{
-					status.AppendLine(output);
-
-					NotARepo = false;
-
-					if (output.StartsWith("On branch"))
+			Action<string, bool> doStatus = (dir, isSubmodule) =>
+			{
+				var preparedToReadDivergence = false;
+				var preparedToReadUntracked = false;
+				ProcessUtils.ExecuteCmdBlocking("git fetch", dir);
+				ProcessUtils.ExecuteCmd(
+					"git status",
+					dir,
+					(output) =>
 					{
-						Branch = output.Replace("On branch", "").Trim();
-					}
-					else if (output.StartsWith("Your branch is behind"))
-					{
-						var split = output.Split(new string[] { " by ", " commits" }, StringSplitOptions.RemoveEmptyEntries);
-						var countStr = split[1];
-						var count = int.Parse(countStr);
+						status.AppendLine(output);
 
-						newNumberCommitsToPull = count;
-					}
-					else if (output.StartsWith("Your branch is ahead of"))
-					{
-						var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
-						var countStr = split[1];
-						var count = int.Parse(countStr);
+						NotARepo = false;
 
-						newNumberCommitsToPush = count;
-					}
-					else if (output.Trim().StartsWith("modified:"))
-					{
-						var path = output.Replace("modified:", "").Trim();
-						var change = new Change(path, ChangeType.MODIFIED, ViewModel.GitCommit);
-
-						addChange(change);
-					}
-					else if (output.Trim().StartsWith("added:"))
-					{
-						var path = output.Replace("added:", "").Trim();
-						var change = new Change(path, ChangeType.ADDED, ViewModel.GitCommit);
-
-						addChange(change);
-					}
-					else if (output.Trim().StartsWith("deleted:"))
-					{
-						var path = output.Replace("deleted:", "").Trim();
-						var change = new Change(path, ChangeType.DELETED, ViewModel.GitCommit);
-
-						addChange(change);
-					}
-					else if (output.StartsWith("Your branch and 'origin/master' have diverged"))
-					{
-						preparedToReadDivergence = true;
-					}
-					else if (preparedToReadDivergence && output.StartsWith("and have"))
-					{
-						var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
-						var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
-
-						newNumberCommitsToPull = int.Parse(split[1]);
-						newNumberCommitsToPush = int.Parse(split[0]);
-
-						preparedToReadDivergence = false;
-					}
-					else if (output.StartsWith("Untracked files:"))
-					{
-						preparedToReadUntracked = true;
-					}
-					else if (preparedToReadUntracked)
-					{
-						try
+						if (output.StartsWith("On branch"))
 						{
-							if (File.Exists(Path.Combine(ViewModel.CurrentDirectory, output.Trim())))
-							{
-								var path = output.Trim();
-								var change = new Change(path, ChangeType.UNTRACKED, ViewModel.GitCommit);
-
-								addChange(change);
-							}
+							Branch = output.Replace("On branch", "").Trim();
 						}
-						catch (Exception ex) { }
-					}
-				},
-				(error) =>
-				{
-					status.AppendLine(error);
+						else if (output.StartsWith("Your branch is behind"))
+						{
+							var split = output.Split(new string[] { " by ", " commits" }, StringSplitOptions.RemoveEmptyEntries);
+							var countStr = split[1];
+							var count = int.Parse(countStr);
 
-					if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
+							newNumberCommitsToPull = count;
+						}
+						else if (output.StartsWith("Your branch is ahead of"))
+						{
+							var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
+							var countStr = split[1];
+							var count = int.Parse(countStr);
+
+							newNumberCommitsToPush = count;
+						}
+						else if (output.Trim().StartsWith("modified:"))
+						{
+							var path = output.Replace("modified:", "").Trim();
+							var change = new Change(path, ChangeType.MODIFIED, ViewModel.GitCommit);
+							if (isSubmodule)
+							{
+								change.Submodule = dir;
+							}
+
+							addChange(change);
+						}
+						else if (output.Trim().StartsWith("added:"))
+						{
+							var path = output.Replace("added:", "").Trim();
+							var change = new Change(path, ChangeType.ADDED, ViewModel.GitCommit);
+							if (isSubmodule)
+							{
+								change.Submodule = dir;
+							}
+
+							addChange(change);
+						}
+						else if (output.Trim().StartsWith("deleted:"))
+						{
+							var path = output.Replace("deleted:", "").Trim();
+							var change = new Change(path, ChangeType.DELETED, ViewModel.GitCommit);
+							if (isSubmodule)
+							{
+								change.Submodule = dir;
+							}
+
+							addChange(change);
+						}
+						else if (output.StartsWith("Your branch and 'origin/master' have diverged"))
+						{
+							preparedToReadDivergence = true;
+						}
+						else if (preparedToReadDivergence && output.StartsWith("and have"))
+						{
+							var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
+							var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
+
+							newNumberCommitsToPull = int.Parse(split[1]);
+							newNumberCommitsToPush = int.Parse(split[0]);
+
+							preparedToReadDivergence = false;
+						}
+						else if (output.StartsWith("Untracked files:"))
+						{
+							preparedToReadUntracked = true;
+						}
+						else if (preparedToReadUntracked)
+						{
+							try
+							{
+								if (File.Exists(Path.Combine(dir, output.Trim())))
+								{
+									var path = output.Trim();
+									var change = new Change(path, ChangeType.UNTRACKED, ViewModel.GitCommit);
+									if (isSubmodule)
+									{
+										change.Submodule = dir;
+									}
+
+									addChange(change);
+								}
+							}
+							catch (Exception ex) { }
+						}
+					},
+					(error) =>
 					{
-						NotARepo = true;
-						Branch = "Not a Repo";
-						newNumberCommitsToPull = 0;
-						return;
-					}
+						status.AppendLine(error);
 
-					NotARepo = false;
-				},
-				2000);
+						if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
+						{
+							NotARepo = true;
+							Branch = "Not a Repo";
+							newNumberCommitsToPull = 0;
+							return;
+						}
 
+						NotARepo = false;
+					},
+					2000);
+			};
+
+			// run the func on root and all submodules
+			doStatus(ViewModel.CurrentDirectory, false);
+			foreach (var submodule in submodules)
+			{
+				doStatus(submodule, true);
+			}
+
+			// if we had changes, notify stuff
 			if (previousChanges.Count != newChanges.Count)
 			{
 				changesChanged = true;
+			}
+
+			if (!Enumerable.SequenceEqual(submodules, Submodules))
+			{
+				Submodules.Clear();
+				Submodules.AddRange(submodules);
+				RaisePropertyChangedEvent(nameof(Submodules));
 			}
 
 			if (changesChanged)
@@ -248,6 +299,7 @@ namespace GitApp
 				ViewModel.GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
 			}
 
+			// update counts
 			NumberCommitsToPull = newNumberCommitsToPull;
 			NumberCommitsToPush = newNumberCommitsToPush;
 
