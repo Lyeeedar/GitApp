@@ -39,39 +39,20 @@ namespace GitApp
 
 			Task.Run(() =>
 			{
-				var failed = "";
-				ProcessUtils.ExecuteCmd(
-					"git push",
-					CurrentDirectory,
-					(output) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
+				try
+				{
+					ViewModel.ExecuteLoggedCommand("git pull --rebase");
 
-				if (!string.IsNullOrWhiteSpace(failed))
-				{
-					Extensions.SafeBeginInvoke(() =>
-					{
-						ViewModel.ToastNotifier.ShowError(failed);
-					});
-				}
-				else
-				{
 					Extensions.SafeBeginInvoke(() =>
 					{
 						ViewModel.ToastNotifier.ShowSuccess("Push complete");
+					});
+				}
+				catch (Exception ex)
+				{
+					Extensions.SafeBeginInvoke(() =>
+					{
+						ViewModel.ToastNotifier.ShowError(ex.Message);
 					});
 				}
 

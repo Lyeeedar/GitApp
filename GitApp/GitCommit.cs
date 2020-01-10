@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using ToastNotifications.Messages;
 
 namespace GitApp
@@ -164,15 +165,17 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void Commit(string CurrentDirectory)
 		{
+			ViewModel.CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+
 			try
 			{
-				ProcessUtils.ExecuteCmdBlocking("git reset HEAD -- .", CurrentDirectory);
+				ViewModel.ExecuteLoggedCommand("git reset HEAD -- .");
 
 				foreach (var change in ChangeList)
 				{
 					if (change.Added)
 					{
-						ProcessUtils.ExecuteCmdBlocking("git add " + change.File, CurrentDirectory);
+						ViewModel.ExecuteLoggedCommand("git add " + change.File);
 					}
 				}
 
@@ -190,7 +193,7 @@ namespace GitApp
 					}
 				}
 
-				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + message + "\"", CurrentDirectory);
+				var output = ViewModel.ExecuteLoggedCommand("git commit -m\"" + message + "\"");
 				CommitScope = "";
 				CommitType = "";
 				CommitMessage = "";

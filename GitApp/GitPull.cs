@@ -39,59 +39,21 @@ namespace GitApp
 
 			Task.Run(() =>
 			{
-				var failed = "";
-				ProcessUtils.ExecuteCmd(
-					"git pull --rebase",
-					CurrentDirectory,
-					(output) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
-
-				ProcessUtils.ExecuteCmd(
-					"git submodule update --init --recursive --force --rebase",
-					CurrentDirectory,
-					(output) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						Extensions.SafeBeginInvoke(() =>
-						{
-							ViewModel.CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
-
-				if (!string.IsNullOrWhiteSpace(failed))
+				try
 				{
-					Extensions.SafeBeginInvoke(() =>
-					{
-						ViewModel.ToastNotifier.ShowError(failed);
-					});
-				}
-				else
-				{
+					ViewModel.ExecuteLoggedCommand("git pull --rebase");
+					ViewModel.ExecuteLoggedCommand("git submodule update --init --recursive --force --rebase");
+
 					Extensions.SafeBeginInvoke(() =>
 					{
 						ViewModel.ToastNotifier.ShowSuccess("Pull complete");
+					});
+				}
+				catch (Exception ex)
+				{
+					Extensions.SafeBeginInvoke(() =>
+					{
+						ViewModel.ToastNotifier.ShowError(ex.Message);
 					});
 				}
 

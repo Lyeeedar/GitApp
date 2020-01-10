@@ -197,6 +197,47 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		public string ExecuteLoggedCommand(string cmd)
+		{
+			if (GitPush.PushInProgress || GitPull.PullInProgress)
+			{
+				return null;
+			}
+
+			CMDLines.Add(new Line(cmd, Brushes.LimeGreen));
+
+			var success = "";
+			var failed = "";
+			ProcessUtils.ExecuteCmd(
+					cmd,
+					CurrentDirectory,
+					(output) =>
+					{
+						Extensions.SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(output, Brushes.White));
+							success += output;
+						});
+					},
+					(error) =>
+					{
+						Extensions.SafeBeginInvoke(() =>
+						{
+							CMDLines.Add(new Line(error, Brushes.Red));
+							failed += error;
+						});
+					},
+					null);
+
+			if (!string.IsNullOrWhiteSpace(failed))
+			{
+				throw new Exception(failed);
+			}
+
+			return success;
+		}
+
+		//-----------------------------------------------------------------------
 		public void ChangeDirectory(string dir)
 		{
 			if (dir == null)
