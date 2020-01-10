@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Timers;
 using System.Windows;
 using System.Windows.Media;
 using System.Xml.Serialization;
@@ -32,167 +31,8 @@ namespace GitApp
 	}
 
 	//-----------------------------------------------------------------------
-	public enum ChangeType
-	{
-		UNTRACKED,
-		MODIFIED,
-		ADDED,
-		DELETED
-	}
-
-	//-----------------------------------------------------------------------
-	public class Change : NotifyPropertyChanged
-	{
-		public ViewModel ViewModel { get; set; }
-		public string File { get; set; }
-		public ChangeType ChangeType { get; set; }
-		public bool Added
-		{
-			get { return m_added; }
-			set
-			{
-				m_added = value;
-				RaisePropertyChangedEvent();
-
-				ViewModel.RaisePropertyChangedEvent(nameof(ViewModel.ChangeMultiSelect));
-				ViewModel.RaisePropertyChangedEvent(nameof(ViewModel.CanCommit));
-			}
-		}
-		private bool m_added;
-
-		public Change(string file, ChangeType changeType, ViewModel viewModel)
-		{
-			this.File = file;
-			this.ChangeType = changeType;
-			this.ViewModel = viewModel;
-		}
-
-		public string Key { get { return File + ChangeType; } }
-	}
-
-	//-----------------------------------------------------------------------
-	public class Commit : NotifyPropertyChanged
-	{
-		public string ID { get; set; }
-		public string Author { get; set; }
-		public string Date { get; set; }
-		public string Message { get; set; }
-
-		public string Title { get { return Message.Split('\n')[0].Trim(); } }
-
-		public bool IsLocal { get; set; }
-
-		public class File : NotifyPropertyChanged
-		{
-			public string Name { get; set; }
-			public Tuple<List<Line>, List<Line>> Contents { get; set; }
-		}
-
-		public List<File> CommitContents
-		{
-			get
-			{
-				if (m_commitContents == null)
-				{
-					m_commitContents = new List<File>();
-					GetCommitContents();
-				}
-
-				return m_commitContents;
-			}
-		}
-		private List<File> m_commitContents;
-
-		public File SelectedFile
-		{
-			get { return m_selectedFile; }
-			set
-			{
-				m_selectedFile = value;
-
-				RaisePropertyChangedEvent();
-			}
-		}
-		private File m_selectedFile;
-
-		public ViewModel ViewModel { get; set; }
-
-		public Commit(ViewModel viewModel)
-		{
-			ViewModel = viewModel;
-		}
-
-		public void GetCommitContents()
-		{
-			var rawContents = ProcessUtils.ExecuteCmdBlocking("git show " + ID, ViewModel.CurrentDirectory);
-			var lines = rawContents.Split('\n');
-
-			Action<string, string> processFile = (filePath, rawDiff) => 
-			{
-				var file = new File();
-				file.Name = filePath;
-				file.Contents = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
-
-				lock (m_commitContents)
-				{
-					m_commitContents.Add(file);
-				}
-				Task.Run(() =>
-				{
-					var diff = ViewModel.ParseDiff(rawDiff);
-
-					ViewModel.SafeBeginInvoke(() =>
-					{
-						lock (m_commitContents)
-						{
-							file.Contents = diff;
-
-							file.RaisePropertyChangedEvent(nameof(File.Contents));
-						}
-					});
-				});
-			};
-
-			var currentFile = "";
-			var currentDiff = new StringBuilder();
-			foreach (var line in lines)
-			{
-				if (line.StartsWith("diff --git a/"))
-				{
-					var file = line.Replace("diff --git a/", "").Split(' ')[0];
-
-					if (currentFile != "")
-					{
-						processFile(currentFile, currentDiff.ToString());
-					}
-
-					currentDiff.Clear();
-					currentFile = file;
-				}
-				else
-				{
-					currentDiff.AppendLine(line);
-				}
-			}
-
-			if (currentFile != "")
-			{
-				processFile(currentFile, currentDiff.ToString());
-			}
-		}
-	}
-
-	//-----------------------------------------------------------------------
 	public class ViewModel : NotifyPropertyChanged
 	{
-		//-----------------------------------------------------------------------
-		private static SolidColorBrush RemovedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 50, 50));
-		private static SolidColorBrush AddedBrush = new SolidColorBrush(Color.FromArgb(50, 50, 255, 50));
-		private static SolidColorBrush ModifiedBrush = new SolidColorBrush(Color.FromArgb(50, 255, 255, 50));
-		private static SolidColorBrush GreyBrush = new SolidColorBrush(Color.FromArgb(50, 150, 150, 150));
-		private static SolidColorBrush DarkGreyBrush = new SolidColorBrush(Color.FromArgb(50, 100, 100, 100));
-
-
 		//-----------------------------------------------------------------------
 		public string ProjectName
 		{
@@ -206,71 +46,6 @@ namespace GitApp
 		private string m_projectName;
 
 		//-----------------------------------------------------------------------
-		public string Branch
-		{
-			get { return m_branch; }
-			set
-			{
-				m_branch = value;
-				RaisePropertyChangedEvent();
-			}
-		}
-		private string m_branch;
-
-		//-----------------------------------------------------------------------
-		public int NumberCommitsToPull
-		{
-			get { return m_numberCommitsToPull; }
-			set
-			{
-				m_numberCommitsToPull = value;
-				RaisePropertyChangedEvent();
-				RaisePropertyChangedEvent(nameof(UpToDate));
-			}
-		}
-		private int m_numberCommitsToPull;
-
-		//-----------------------------------------------------------------------
-		public int NumberCommitsToPush
-		{
-			get { return m_numberCommitsToPush; }
-			set
-			{
-				m_numberCommitsToPush = value;
-				RaisePropertyChangedEvent();
-				RaisePropertyChangedEvent(nameof(UpToDate));
-			}
-		}
-		private int m_numberCommitsToPush;
-
-		//-----------------------------------------------------------------------
-		public bool UpToDate
-		{
-			get
-			{
-				return NumberCommitsToPull + NumberCommitsToPush == 0;
-			}
-		}
-
-		//-----------------------------------------------------------------------
-		public List<Change> ChangeList { get; set; } = new List<Change>();
-
-		//-----------------------------------------------------------------------
-		public bool NotARepo
-		{
-			get { return m_notARepo; }
-			set
-			{
-				if (m_notARepo != value)
-				{
-					m_notARepo = value;
-					RaisePropertyChangedEvent();
-				}
-			}
-		}
-		private bool m_notARepo;
-
-		//-----------------------------------------------------------------------
 		public string CurrentDirectory
 		{
 			get { return m_currentDirectory; }
@@ -281,8 +56,8 @@ namespace GitApp
 
 				ProjectName = Path.GetFileName(CurrentDirectory);
 
-				CheckStatus();
-				GetLog();
+				GitStatus.CheckStatus();
+				GitLog.GetLog(m_currentDirectory);
 
 				RecentProjects.Remove(m_currentDirectory);
 				RecentProjects.Insert(0, m_currentDirectory);
@@ -304,21 +79,7 @@ namespace GitApp
 		public Command<string> ChangeDirectoryCMD { get { return new Command<string>((obj) => { ChangeDirectory(obj); }); } }
 
 		//-----------------------------------------------------------------------
-		public Command<object> PullCMD { get { return new Command<object>((obj) => { Pull(); }); } }
-		public bool PullInProgress { get; set; }
-
-		//-----------------------------------------------------------------------
-		public Command<object> PushCMD { get { return new Command<object>((obj) => { Push(); }); } }
-		public bool PushInProgress { get; set; }
-
-		//-----------------------------------------------------------------------
-		public Command<object> CommitCMD { get { return new Command<object>((obj) => { Commit(); }); } }
-
-		//-----------------------------------------------------------------------
 		public Command<object> ClearConsoleCMD { get { return new Command<object>((obj) => { CMDLines.Clear(); }); } }
-
-		//-----------------------------------------------------------------------
-		public Command<object> UndoCMD { get { return new Command<object>((obj) => { Undo(); }); } }
 
 		//-----------------------------------------------------------------------
 		public DeferableObservableCollection<Line> CMDLines { get; } = new DeferableObservableCollection<Line>();
@@ -334,37 +95,6 @@ namespace GitApp
 			}
 		}
 		public string m_arbitraryCMD;
-
-		//-----------------------------------------------------------------------
-		public Change SelectedChange
-		{
-			get { return m_selectedChange; }
-			set
-			{
-				m_selectedChange = value;
-				RaisePropertyChangedEvent();
-
-				GetCurrentDiff();
-			}
-		}
-		private Change m_selectedChange;
-
-		//-----------------------------------------------------------------------
-		public Tuple<List<Line>, List<Line>> SelectedDiff { get; set; }
-
-		//-----------------------------------------------------------------------
-		public Commit SelectedCommit
-		{
-			get { return m_selectedCommit; }
-			set
-			{
-				m_selectedCommit = value;
-				RaisePropertyChangedEvent();
-
-				GetCurrentDiff();
-			}
-		}
-		private Commit m_selectedCommit;
 
 		//-----------------------------------------------------------------------
 		public int SelectedTab
@@ -390,99 +120,25 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		public bool? ChangeMultiSelect
-		{
-			get
-			{
-				bool? state = null;
-				foreach (var change in ChangeList)
-				{
-					if (state.HasValue)
-					{
-						if (change.Added != state.Value)
-						{
-							return null;
-						}
-					}
-					else
-					{
-						state = change.Added;
-					}
-				}
-
-				return state.HasValue ? state.Value : false;
-			}
-			set
-			{
-				if (value.HasValue)
-				{
-					foreach (var change in ChangeList)
-					{
-						change.Added = value.Value;
-					}
-				}
-				RaisePropertyChangedEvent();
-			}
-		}
-
-		//-----------------------------------------------------------------------
-		public string CommitType
-		{
-			get { return m_commitType; }
-			set
-			{
-				m_commitType = value;
-				RaisePropertyChangedEvent();
-			}
-		}
-		private string m_commitType;
-
-		//-----------------------------------------------------------------------
-		public string CommitScope
-		{
-			get { return m_commitScope; }
-			set
-			{
-				m_commitScope = value;
-				RaisePropertyChangedEvent();
-			}
-		}
-		private string m_commitScope;
-
-		//-----------------------------------------------------------------------
-		public string CommitMessage
-		{
-			get { return m_commitMessage; }
-			set
-			{
-				m_commitMessage = value;
-				RaisePropertyChangedEvent();
-
-				RaisePropertyChangedEvent(nameof(CanCommit));
-			}
-		}
-		private string m_commitMessage;
-
-		//-----------------------------------------------------------------------
-		public List<string> CommitTypes { get; set; }
-
-		//-----------------------------------------------------------------------
-		public List<string> CommitScopes { get; set; }
-
-		//-----------------------------------------------------------------------
-		public bool CanCommit
-		{
-			get { return !string.IsNullOrWhiteSpace(CommitMessage) && ChangeList.Any(e => e.Added); }
-		}
-
-		//-----------------------------------------------------------------------
-		public string UndoableLastCommit { get; set; }
-
-		//-----------------------------------------------------------------------
-		public List<Commit> Log { get; set; }
-
-		//-----------------------------------------------------------------------
 		public Notifier ToastNotifier { get; set; }
+
+		//-----------------------------------------------------------------------
+		public GitLog GitLog { get; }
+
+		//-----------------------------------------------------------------------
+		public GitPush GitPush { get; }
+
+		//-----------------------------------------------------------------------
+		public GitPull GitPull { get; }
+
+		//-----------------------------------------------------------------------
+		public GitCommit GitCommit { get; }
+
+		//-----------------------------------------------------------------------
+		public GitDiff GitDiff { get; }
+
+		//-----------------------------------------------------------------------
+		public GitStatus GitStatus { get; }
 
 		//-----------------------------------------------------------------------
 		public ViewModel()
@@ -501,6 +157,13 @@ namespace GitApp
 
 				cfg.Dispatcher = Application.Current.Dispatcher;
 			});
+
+			GitLog = new GitLog(this);
+			GitPush = new GitPush(this);
+			GitPull = new GitPull(this);
+			GitCommit = new GitCommit(this);
+			GitDiff = new GitDiff(this);
+			GitStatus = new GitStatus(this);
 
 			if (File.Exists(SettingsPath))
 			{
@@ -531,14 +194,6 @@ namespace GitApp
 				.ToList()
 				?? 
 				new List<string>();
-
-			var timer = new Timer();
-			timer.Elapsed += (e, args) =>
-			{
-				CheckStatus();
-			};
-			timer.Interval = 3000;
-			timer.Start();
 		}
 
 		//-----------------------------------------------------------------------
@@ -575,635 +230,6 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
-		bool checkingStatus = false;
-		string lastStatus = null;
-		public void CheckStatus()
-		{
-			var windowActive = true;//Application.Current?.MainWindow?.IsActive ?? false;
-			if (PushInProgress || PullInProgress || !windowActive || ProcessUtils.OperationInProgress || checkingStatus)
-			{
-				return;
-			}
-
-			checkingStatus = true;
-
-			var newNumberCommitsToPush = 0;
-			var newNumberCommitsToPull = 0;
-
-			var previousChanges = new Dictionary<string, Change>();
-			foreach (var change in ChangeList)
-			{
-				previousChanges[change.Key] = change;
-			}
-			var newChanges = new List<Change>();
-			var addedChanges = new HashSet<string>();
-			var changesChanged = false;
-
-			Action<Change> addChange = (change) =>
-			{
-				if (addedChanges.Contains(change.Key))
-				{
-					return;
-				}
-				addedChanges.Add(change.Key);
-
-				Change existingChange;
-				if (previousChanges.TryGetValue(change.Key, out existingChange))
-				{
-					newChanges.Add(existingChange);
-				}
-				else
-				{
-					changesChanged = true;
-					newChanges.Add(change);
-				}
-			};
-
-			var status = new StringBuilder();
-
-			var preparedToReadDivergence = false;
-			var preparedToReadUntracked = false;
-			ProcessUtils.ExecuteCmdBlocking("git fetch", CurrentDirectory);
-			ProcessUtils.ExecuteCmd(
-				"git status",
-				CurrentDirectory,
-				(output) =>
-				{
-					status.AppendLine(output);
-
-					NotARepo = false;
-
-					if (output.StartsWith("On branch"))
-					{
-						Branch = output.Replace("On branch", "").Trim();
-					}
-					else if (output.StartsWith("Your branch is behind"))
-					{
-						var split = output.Split(new string[] { " by ", " commits" }, StringSplitOptions.RemoveEmptyEntries);
-						var countStr = split[1];
-						var count = int.Parse(countStr);
-
-						newNumberCommitsToPull = count;
-					}
-					else if (output.StartsWith("Your branch is ahead of"))
-					{
-						var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
-						var countStr = split[1];
-						var count = int.Parse(countStr);
-
-						newNumberCommitsToPush = count;
-					}
-					else if (output.Trim().StartsWith("modified:"))
-					{
-						var path = output.Replace("modified:", "").Trim();
-						var change = new Change(path, ChangeType.MODIFIED, this);
-
-						addChange(change);
-					}
-					else if (output.Trim().StartsWith("added:"))
-					{
-						var path = output.Replace("added:", "").Trim();
-						var change = new Change(path, ChangeType.ADDED, this);
-
-						addChange(change);
-					}
-					else if (output.Trim().StartsWith("deleted:"))
-					{
-						var path = output.Replace("deleted:", "").Trim();
-						var change = new Change(path, ChangeType.DELETED, this);
-
-						addChange(change);
-					}
-					else if (output.StartsWith("Your branch and 'origin/master' have diverged"))
-					{
-						preparedToReadDivergence = true;
-					}
-					else if (preparedToReadDivergence && output.StartsWith("and have"))
-					{
-						var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
-						var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
-
-						newNumberCommitsToPull = int.Parse(split[1]);
-						newNumberCommitsToPush = int.Parse(split[0]);
-
-						preparedToReadDivergence = false;
-					}
-					else if (output.StartsWith("Untracked files:"))
-					{
-						preparedToReadUntracked = true;
-					}
-					else if (preparedToReadUntracked)
-					{
-						try
-						{
-							if (File.Exists(Path.Combine(CurrentDirectory, output.Trim())))
-							{
-								var path = output.Trim();
-								var change = new Change(path, ChangeType.UNTRACKED, this);
-
-								addChange(change);
-							}
-						}
-						catch (Exception ex) { }
-					}
-				},
-				(error) =>
-				{
-					status.AppendLine(error);
-
-					if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
-					{
-						NotARepo = true;
-						Branch = "Not a Repo";
-						newNumberCommitsToPull = 0;
-						return;
-					}
-
-					NotARepo = false;
-				},
-				2000);
-
-			if (previousChanges.Count != newChanges.Count)
-			{
-				changesChanged = true;
-			}
-
-			if (changesChanged)
-			{
-				ChangeList = newChanges.OrderBy(e => e.File).ToList();
-				RaisePropertyChangedEvent(nameof(ChangeList));
-			}
-
-            NumberCommitsToPull = newNumberCommitsToPull;
-            NumberCommitsToPush = newNumberCommitsToPush;
-
-            checkingStatus = false;
-
-            var statusStr = status.ToString();
-            if (statusStr != lastStatus)
-            {
-                lastStatus = statusStr;
-
-                GetLog();
-            }
-        }
-
-        //-----------------------------------------------------------------------
-        private static readonly Regex _regex = new Regex(
-            @"(?<Type>\w*)(\((?<Scope>.*)\))?:(?<Description>.*)",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        //-----------------------------------------------------------------------
-        public void GetLog()
-		{
-			try
-			{
-				var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
-				var lines = rawLog.Split('\n');
-
-				var log = new List<Commit>();
-				var commitsMap = new Dictionary<string, Commit>();
-
-				var types = new HashSet<string>();
-				var scopes = new HashSet<string>();
-
-				Commit currentCommit = null;
-				foreach (var line in lines)
-				{
-					if (line.StartsWith("commit "))
-					{
-						if (currentCommit != null)
-						{
-							currentCommit.Message = currentCommit.Message.Trim();
-							log.Add(currentCommit);
-							commitsMap[currentCommit.ID] = currentCommit;
-
-							var matches = _regex.Matches(currentCommit.Message);
-							foreach (Match match in matches)
-							{
-								var groups = match.Groups;
-								var type = groups["Type"].Value.Trim();
-								var scope = groups["Scope"].Value.Trim();
-
-								types.Add(type);
-								scopes.Add(scope);
-							}
-						}
-
-						currentCommit = new Commit(this);
-						currentCommit.ID = line.Replace("commit", "").Trim();
-					}
-					else if (line.StartsWith("Author: "))
-					{
-						currentCommit.Author = line.Replace("Author: ", "").Trim();
-					}
-					else if (line.StartsWith("Date: "))
-					{
-						currentCommit.Date = line.Replace("Date: ", "").Trim();
-					}
-					else
-					{
-						currentCommit.Message += line + "\n";
-					}
-				}
-
-				var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
-				lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-				foreach (var line in lines)
-				{
-					commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
-				}
-
-				Log = log;
-				RaisePropertyChangedEvent(nameof(Log));
-
-				CommitTypes = types.OrderBy(e => e).ToList();
-				RaisePropertyChangedEvent(nameof(CommitTypes));
-
-				CommitScopes = scopes.OrderBy(e => e).ToList();
-				RaisePropertyChangedEvent(nameof(CommitScopes));
-
-				if (log.Count > 0 && log[0].IsLocal)
-				{
-					UndoableLastCommit = log[0].Message;
-				}
-				else
-				{
-					UndoableLastCommit = null;
-				}
-				RaisePropertyChangedEvent(nameof(UndoableLastCommit));
-			}
-			catch (Exception e)
-			{
-				SafeBeginInvoke(() => 
-				{
-					ToastNotifier.ShowError("Get Log failed:\n" + e.Message);
-				});
-			}
-		}
-
-		//-----------------------------------------------------------------------
-		public void Push()
-		{
-			if (PushInProgress || PullInProgress)
-			{
-				return;
-			}
-
-			PushInProgress = true;
-			RaisePropertyChangedEvent(nameof(PushInProgress));
-
-			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
-			CMDLines.Add(new Line("Button push", Brushes.SkyBlue));
-
-			Task.Run(() =>
-			{
-				var failed = "";
-				ProcessUtils.ExecuteCmd(
-					"git push",
-					CurrentDirectory,
-					(output) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
-
-				if (!string.IsNullOrWhiteSpace(failed))
-				{
-					SafeBeginInvoke(() =>
-					{
-						ToastNotifier.ShowError(failed);
-					});
-				}
-				else
-				{
-					SafeBeginInvoke(() =>
-					{
-						ToastNotifier.ShowSuccess("Push complete");
-					});
-				}
-
-				SafeBeginInvoke(() =>
-				{
-					PushInProgress = false;
-					RaisePropertyChangedEvent(nameof(PushInProgress));
-
-					CheckStatus();
-				});
-			});
-		}
-
-		//-----------------------------------------------------------------------
-		public void Pull()
-		{
-			if (PushInProgress || PullInProgress)
-			{
-				return;
-			}
-
-			PullInProgress = true;
-			RaisePropertyChangedEvent(nameof(PullInProgress));
-
-			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
-			CMDLines.Add(new Line("Button pull", Brushes.SkyBlue));
-
-			Task.Run(() =>
-			{
-				var failed = "";
-				ProcessUtils.ExecuteCmd(
-					"git pull --rebase",
-					CurrentDirectory,
-					(output) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
-
-				ProcessUtils.ExecuteCmd(
-					"git submodule update --init --recursive --force --rebase",
-					CurrentDirectory,
-					(output) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(output, Brushes.White));
-						});
-					},
-					(error) =>
-					{
-						SafeBeginInvoke(() =>
-						{
-							CMDLines.Add(new Line(error, Brushes.Red));
-							failed += error;
-						});
-					},
-					null);
-
-				if (!string.IsNullOrWhiteSpace(failed))
-				{
-					SafeBeginInvoke(() =>
-					{
-						ToastNotifier.ShowError(failed);
-					});
-				}
-				else
-				{
-					SafeBeginInvoke(() =>
-					{
-						ToastNotifier.ShowSuccess("Pull complete");
-					});
-				}
-
-				SafeBeginInvoke(() =>
-				{
-					PullInProgress = false;
-					RaisePropertyChangedEvent(nameof(PullInProgress));
-
-					CheckStatus();
-				});
-			});
-		}
-
-		//-----------------------------------------------------------------------
-		public void Commit()
-		{
-			try
-			{
-				ProcessUtils.ExecuteCmdBlocking("git reset HEAD -- .", CurrentDirectory);
-
-				foreach (var change in ChangeList)
-				{
-					if (change.Added)
-					{
-						ProcessUtils.ExecuteCmdBlocking("git add " + change.File, CurrentDirectory);
-					}
-				}
-
-				var message = CommitMessage;
-
-				if (!string.IsNullOrWhiteSpace(CommitType))
-				{
-					if (!string.IsNullOrWhiteSpace(CommitScope))
-					{
-						message = CommitType + "(" + CommitScope + "): " + message;
-					}
-					else
-					{
-						message = CommitType + ": " + message;
-					}
-				}
-
-				ProcessUtils.ExecuteCmdBlocking("git commit -m\"" + message + "\"", CurrentDirectory);
-				CommitScope = "";
-				CommitType = "";
-				CommitMessage = "";
-
-				CheckStatus();
-
-				SafeBeginInvoke(() =>
-				{
-					ToastNotifier.ShowSuccess("Commit complete");
-				});
-			}
-			catch (Exception ex)
-			{
-				ToastNotifier.ShowError(ex.Message);
-			}
-		}
-
-		//-----------------------------------------------------------------------
-		public void GetCurrentDiff()
-		{
-			if (SelectedChange == null)
-			{
-				SelectedDiff = new Tuple<List<Line>, List<Line>>(new List<Line>(), new List<Line>());
-				RaisePropertyChangedEvent(nameof(SelectedDiff));
-				return;
-			}
-
-			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff \"" + SelectedChange.File + "\"", CurrentDirectory);
-
-			SelectedDiff = ParseDiff(rawDiff);
-			RaisePropertyChangedEvent(nameof(SelectedDiff));
-		}
-
-		//-----------------------------------------------------------------------
-		enum DiffType
-		{
-			BEFORE,
-			AFTER,
-			BOTH
-		}
-
-		//-----------------------------------------------------------------------
-		public class DiffBlock
-		{
-			public List<string> Lines { get; } = new List<string>();
-			public Brush Brush { get; set; }
-		}
-
-		//-----------------------------------------------------------------------
-		public Tuple<List<Line>, List<Line>> ParseDiff(string rawDiff)
-		{
-			var strlines = rawDiff.Split('\n');
-
-			var blocks = new List<DiffBlock>();
-
-			var isDiff = false;
-			DiffBlock currentBlock = new DiffBlock();
-			var currentBlockType = ' ';
-			var currentBlockBrush = Brushes.Transparent;
-			foreach (var strLine in strlines)
-			{
-				if (strLine == "") continue;
-
-				var blockType = strLine[0];
-				if (blockType != currentBlockType)
-				{
-					currentBlock.Brush = currentBlockBrush;
-					blocks.Add(currentBlock);
-					currentBlockType = blockType;
-
-					currentBlock = new DiffBlock();
-				}
-
-				if (strLine[0] == '@')
-				{
-					isDiff = true;
-					currentBlockBrush = GreyBrush;
-				}
-				else if (strLine[0] == '+')
-				{
-					currentBlockBrush = ModifiedBrush;
-				}
-				else if (strLine[0] == '-')
-				{
-					currentBlockBrush = RemovedBrush;
-				}
-				else
-				{
-					currentBlockBrush = Brushes.Transparent;
-				}
-
-				if (isDiff)
-				{
-					currentBlock.Lines.Add(strLine.Trim());
-				}
-			}
-
-			var beforelines = new List<Line>();
-			var afterlines = new List<Line>();
-
-			for (int i = 0; i < blocks.Count; i++)
-			{
-				var prevBlock = i > 0 ? blocks[i - 1] : null;
-				var block = blocks[i];
-				var nextBlock = i < blocks.Count - 1 ? blocks[i+1] : null;
-
-				if (prevBlock != null && prevBlock.Brush == RemovedBrush && block.Brush == AddedBrush)
-				{
-					foreach (var line in prevBlock.Lines)
-					{
-						beforelines.Add(new Line(line, ModifiedBrush));
-					}
-
-					foreach (var line in block.Lines)
-					{
-						afterlines.Add(new Line(line, ModifiedBrush));
-					}
-
-					while (beforelines.Count < afterlines.Count)
-					{
-						beforelines.Add(new Line("", DarkGreyBrush));
-					}
-
-					while (afterlines.Count < beforelines.Count)
-					{
-						afterlines.Add(new Line("", DarkGreyBrush));
-					}
-				}
-				else if (block.Brush == RemovedBrush)
-				{
-					if (nextBlock == null || nextBlock.Brush != AddedBrush)
-					{
-						foreach (var line in block.Lines)
-						{
-							beforelines.Add(new Line(line, block.Brush));
-							afterlines.Add(new Line("", block.Brush));
-						}
-					}
-				}
-				else if (block.Brush == AddedBrush)
-				{
-					foreach (var line in block.Lines)
-					{
-						beforelines.Add(new Line("", block.Brush));
-						afterlines.Add(new Line(line, block.Brush));
-					}
-				}
-				else
-				{
-					foreach (var line in block.Lines)
-					{
-						beforelines.Add(new Line(line, block.Brush));
-						afterlines.Add(new Line(line, block.Brush));
-					}
-				}
-			}
-
-			return new Tuple<List<Line>, List<Line>>(beforelines, afterlines);
-		}
-
-		//-----------------------------------------------------------------------
-		public void Undo()
-		{
-			ProcessUtils.ExecuteCmdBlocking("git reset --soft HEAD~1", CurrentDirectory);
-
-			var matches = _regex.Matches(UndoableLastCommit);
-			foreach (Match match in matches)
-			{
-				var groups = match.Groups;
-				var type = groups["Type"].Value.Trim();
-				var scope = groups["Scope"].Value.Trim();
-				var message = groups["Description"].Value.Trim();
-
-				CommitType = type;
-				CommitScope = scope;
-				CommitMessage = message;
-			}
-
-			CheckStatus();
-		}
-
-		//-----------------------------------------------------------------------
-		public void SafeBeginInvoke(Action func)
-		{
-			Application.Current?.Dispatcher.BeginInvoke(new Action(() => { func(); }));
-		}
-
-		//-----------------------------------------------------------------------
 		public void RunArbitraryCommand(string cmd)
 		{
 			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
@@ -1216,14 +242,14 @@ namespace GitApp
 					CurrentDirectory,
 					(output) =>
 					{
-						SafeBeginInvoke(() =>
+						Extensions.SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(output, Brushes.White));
 						});
 					},
 					(error) =>
 					{
-						SafeBeginInvoke(() =>
+						Extensions.SafeBeginInvoke(() =>
 						{
 							CMDLines.Add(new Line(error, Brushes.Red));
 						});

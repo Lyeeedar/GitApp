@@ -36,13 +36,13 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		private void PullClick(object sender, MouseButtonEventArgs e)
 		{
-			GitViewModel.Pull();
+			GitViewModel.GitPull.Pull(GitViewModel.CurrentDirectory);
 		}
 
 		//-----------------------------------------------------------------------
 		private void PushClick(object sender, MouseButtonEventArgs e)
 		{
-			GitViewModel.Push();
+			GitViewModel.GitPush.Push(GitViewModel.CurrentDirectory);
 		}
 
 		//-----------------------------------------------------------------------

@@ -67,6 +67,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="GitCommit.cs" />
+    <Compile Include="GitDiff.cs" />
+    <Compile Include="GitLog.cs" />
+    <Compile Include="GitPull.cs" />
+    <Compile Include="GitPush.cs" />
+    <Compile Include="GitStatus.cs" />
     <Compile Include="Util\Command.cs" />
     <Compile Include="Util\DeferableObservableCollection.cs" />
     <Compile Include="Util\DescendantPropertyChangedEventArgs.cs" />

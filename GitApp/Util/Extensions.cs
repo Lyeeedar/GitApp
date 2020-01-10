@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -18,6 +19,12 @@ namespace GitApp
 {
 	public static class Extensions
 	{
+		//-----------------------------------------------------------------------
+		public static void SafeBeginInvoke(Action func)
+		{
+			Application.Current?.Dispatcher.BeginInvoke(new Action(() => { func(); }));
+		}
+
 		//-----------------------------------------------------------------------
 		public static float Evaluate(this string expression)
 		{

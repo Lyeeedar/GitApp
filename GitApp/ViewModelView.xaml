@@ -71,7 +71,7 @@
 							Text="{Binding ProjectName}" />
 					<TextBlock
 							Opacity="0.7"
-							Text="{Binding Branch}" />
+							Text="{Binding GitStatus.Branch}" />
 				</StackPanel>
 			</DockPanel>
 		</Border>
@@ -87,14 +87,14 @@
 							DockPanel.Dock="Top">
 						<CheckBox
 								DockPanel.Dock="Left"
-								IsChecked="{Binding ChangeMultiSelect, Mode=TwoWay}" />
+								IsChecked="{Binding GitCommit.ChangeMultiSelect, Mode=TwoWay}" />
 						<TextBlock
 								HorizontalAlignment="Center"
-								Text="{Binding ChangeList.Count, StringFormat={}{0} Changes}" />
+								Text="{Binding GitCommit.ChangeList.Count, StringFormat={}{0} Changes}" />
 					</DockPanel>
 
 					<Grid
-							Visibility="{Binding UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+							Visibility="{Binding GitLog.UndoableLastCommit, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 							DockPanel.Dock="Bottom">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition
@@ -104,22 +104,22 @@
 						</Grid.ColumnDefinitions>
 
 						<TextBlock
-								Text="{Binding UndoableLastCommit}" />
+								Text="{Binding GitLog.UndoableLastCommit}" />
 						<Button
 								Grid.Column="1"
-								Command="{Binding UndoCMD}"
+								Command="{Binding GitCommit.UndoCMD}"
 								Content="Undo" />
 					</Grid>
 
 					<Button
-							IsEnabled="{Binding CanCommit}"
+							IsEnabled="{Binding GitCommit.CanCommit}"
 							DockPanel.Dock="Bottom"
 							Content="Commit changes"
-							Command="{Binding CommitCMD}" />
+							Command="{Binding GitCommit.CommitCMD}" />
 
 					<local:MultilineTextEditor
 							DockPanel.Dock="Bottom"
-							Text="{Binding CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							Text="{Binding GitCommit.CommitMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
 					<Grid
 							DockPanel.Dock="Bottom">
@@ -132,20 +132,20 @@
 
 						<local:AutoCompleteTextBox
 								Grid.Column="0"
-								ItemsSource="{Binding CommitTypes}"
+								ItemsSource="{Binding GitLog.CommitTypes}"
 								PromptText="Type"
-								Text="{Binding CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+								Text="{Binding GitCommit.CommitType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
 						<local:AutoCompleteTextBox
 								Grid.Column="1"
-								ItemsSource="{Binding CommitScopes}"
+								ItemsSource="{Binding GitLog.CommitScopes}"
 								PromptText="Scope"
-								Text="{Binding CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+								Text="{Binding GitCommit.CommitScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 					</Grid>
 
 					<ListView
-							SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
-							ItemsSource="{Binding ChangeList}">
+							SelectedItem="{Binding GitCommit.SelectedChange, Mode=TwoWay}"
+							ItemsSource="{Binding GitCommit.ChangeList}">
 						<ListView.ItemContainerStyle>
 							<Style
 									TargetType="{x:Type ListViewItem}"
@@ -179,8 +179,8 @@
 					Header="History">
 				<ListView
 						ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-						SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
-						ItemsSource="{Binding Log}">
+						SelectedItem="{Binding GitLog.SelectedCommit, Mode=TwoWay}"
+						ItemsSource="{Binding GitLog.Log}">
 					<ListView.ItemContainerStyle>
 						<Style
 								TargetType="{x:Type ListViewItem}"
@@ -270,8 +270,8 @@
 			</Grid.ColumnDefinitions>
 
 			<Border
-					IsEnabled="{Binding PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
-					Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+					IsEnabled="{Binding GitPush.PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+					Visibility="{Binding GitStatus.NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PushClick">
 				<DockPanel>
@@ -292,7 +292,7 @@
 							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
-									Text="{Binding NumberCommitsToPush}" />
+									Text="{Binding GitStatus.NumberCommitsToPush}" />
 							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
@@ -310,8 +310,8 @@
 			</Border>
 
 			<Border
-					IsEnabled="{Binding PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
-					Visibility="{Binding NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+					IsEnabled="{Binding GitPull.PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+					Visibility="{Binding GitStatus.NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 					Style="{StaticResource ButtonBorder}"
 					MouseLeftButtonDown="PullClick">
 				<DockPanel>
@@ -326,14 +326,14 @@
 							CornerRadius="10"
 							DockPanel.Dock="Right"
 							VerticalAlignment="Center"
-							Visibility="{Binding NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
+							Visibility="{Binding GitStatus.NumberCommitsToPush, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 							Background="{StaticResource BackgroundLightBrush}">
 						<StackPanel
 								Orientation="Horizontal">
 							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
-									Text="{Binding NumberCommitsToPush}" />
+									Text="{Binding GitStatus.NumberCommitsToPush}" />
 							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
@@ -353,7 +353,7 @@
 							<TextBlock
 									Margin="10,5,5,5"
 									VerticalAlignment="Center"
-									Text="{Binding NumberCommitsToPull}" />
+									Text="{Binding GitStatus.NumberCommitsToPull}" />
 							<Image
 									Margin="0,5,10,5"
 									DockPanel.Dock="Left"
@@ -374,7 +374,7 @@
 					Background="{StaticResource BackgroundDarkBrush}"
 					BorderThickness="2"
 					BorderBrush="{StaticResource BorderDarkBrush}"
-					Visibility="{Binding UpToDate, Converter={local:ValueTypeConverter}}">
+					Visibility="{Binding GitStatus.UpToDate, Converter={local:ValueTypeConverter}}">
 				<TextBlock
 						Margin="20"
 						VerticalAlignment="Center"
@@ -400,7 +400,7 @@
 							</Grid.ColumnDefinitions>
 
 							<ItemsControl
-									ItemsSource="{Binding SelectedDiff.Item1}">
+									ItemsSource="{Binding GitDiff.SelectedDiff.Item1}">
 								<ItemsControl.ItemTemplate>
 									<DataTemplate>
 										<TextBlock
@@ -412,7 +412,7 @@
 
 							<ItemsControl
 									Grid.Column="1"
-									ItemsSource="{Binding SelectedDiff.Item2}">
+									ItemsSource="{Binding GitDiff.SelectedDiff.Item2}">
 								<ItemsControl.ItemTemplate>
 									<DataTemplate>
 										<TextBlock
@@ -436,8 +436,8 @@
 						</Grid.ColumnDefinitions>
 
 						<ListView
-								SelectedItem="{Binding SelectedCommit.SelectedFile, Mode=TwoWay}"
-								ItemsSource="{Binding SelectedCommit.CommitContents}">
+								SelectedItem="{Binding GitLog.SelectedCommit.SelectedFile, Mode=TwoWay}"
+								ItemsSource="{Binding GitLog.SelectedCommit.CommitContents}">
 							<ListView.ItemTemplate>
 								<DataTemplate>
 									<TextBlock
@@ -464,7 +464,7 @@
 								</Grid.ColumnDefinitions>
 
 								<ItemsControl
-										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item1}">
+										ItemsSource="{Binding GitLog.SelectedCommit.SelectedFile.Contents.Item1}">
 									<ItemsControl.ItemTemplate>
 										<DataTemplate>
 											<TextBlock
@@ -476,7 +476,7 @@
 
 								<ItemsControl
 										Grid.Column="1"
-										ItemsSource="{Binding SelectedCommit.SelectedFile.Contents.Item2}">
+										ItemsSource="{Binding GitLog.SelectedCommit.SelectedFile.Contents.Item2}">
 									<ItemsControl.ItemTemplate>
 										<DataTemplate>
 											<TextBlock
