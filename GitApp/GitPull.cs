@@ -34,7 +34,7 @@ namespace GitApp
 			PullInProgress = true;
 			RaisePropertyChangedEvent(nameof(PullInProgress));
 
-			ViewModel.CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			ViewModel.CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
 			ViewModel.CMDLines.Add(new Line("Button pull", Brushes.SkyBlue));
 
 			Task.Run(() =>

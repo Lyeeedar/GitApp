@@ -34,7 +34,7 @@ namespace GitApp
 			PushInProgress = true;
 			RaisePropertyChangedEvent(nameof(PushInProgress));
 
-			ViewModel.CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			ViewModel.CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
 			ViewModel.CMDLines.Add(new Line("Button push", Brushes.SkyBlue));
 
 			Task.Run(() =>

@@ -350,6 +350,11 @@ namespace GitApp
 				var name = branchLine.Replace("remotes/origin/", "");
 				var isRemote = branchLine.StartsWith("remotes/origin/");
 
+				if (string.IsNullOrWhiteSpace(name))
+				{
+					continue;
+				}
+
 				if (name == currentBranch)
 				{
 					isCurrent = true;

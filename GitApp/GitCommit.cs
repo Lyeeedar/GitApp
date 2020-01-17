@@ -202,7 +202,7 @@ namespace GitApp
 				return;
 			}
 
-			ViewModel.CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			ViewModel.CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
 
 			try
 			{
