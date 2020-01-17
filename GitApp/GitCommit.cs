@@ -124,7 +124,7 @@ namespace GitApp
 				m_selectedChange = value;
 				RaisePropertyChangedEvent();
 
-				ViewModel.GitDiff.GetCurrentDiff(m_selectedChange.Submodule ?? ViewModel.CurrentDirectory);
+				ViewModel.GitDiff.GetCurrentDiff(ViewModel.CurrentDirectory);
 			}
 		}
 		private Change m_selectedChange;
