@@ -3,14 +3,50 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace GitApp
 {
+	//-----------------------------------------------------------------------
+	public class Branch
+	{
+		//-----------------------------------------------------------------------
+		public string Name { get; set; }
+
+		//-----------------------------------------------------------------------
+		public bool IsRemote { get; set; }
+
+		//-----------------------------------------------------------------------
+		public bool IsCurrentBranch { get; set; }
+
+		//-----------------------------------------------------------------------
+		public Command<object> SwitchToBranchCMD { get { return new Command<object>((obj) => { SwitchToBranch(); }); } }
+
+		//-----------------------------------------------------------------------
+		public ViewModel ViewModel { get; }
+
+		//-----------------------------------------------------------------------
+		public Branch(ViewModel viewModel, string name)
+		{
+			this.ViewModel = viewModel;
+			this.Name = name;
+		}
+
+		//-----------------------------------------------------------------------
+		public void SwitchToBranch()
+		{
+			ViewModel.ExecuteLoggedCommand("git checkout " + Name);
+		}
+	}
+
 	public class GitStatus : NotifyPropertyChanged
 	{
 		//-----------------------------------------------------------------------
-		public string Branch
+		public Command<string> CreateBranchCMD { get { return new Command<string>((obj) => { CreateBranch(); }); } }
+
+		//-----------------------------------------------------------------------
+		public Branch Branch
 		{
 			get { return m_branch; }
 			set
@@ -19,7 +55,10 @@ namespace GitApp
 				RaisePropertyChangedEvent();
 			}
 		}
-		private string m_branch;
+		private Branch m_branch;
+
+		//-----------------------------------------------------------------------
+		public DeferableObservableCollection<Branch> Branches { get; } = new DeferableObservableCollection<Branch>();
 
 		//-----------------------------------------------------------------------
 		public List<string> Submodules { get; } = new List<string>();
@@ -151,6 +190,7 @@ namespace GitApp
 			};
 
 			// status runner func
+			string currentBranch = null;
 			var status = new StringBuilder();
 			Action<string, bool> doStatus = (dir, isSubmodule) =>
 			{
@@ -168,7 +208,10 @@ namespace GitApp
 
 						if (output.StartsWith("On branch"))
 						{
-							Branch = output.Replace("On branch", "").Trim();
+							if (!isSubmodule)
+							{
+								currentBranch = output.Replace("On branch", "").Trim();
+							}
 						}
 						else if (output.StartsWith("Your branch is behind"))
 						{
@@ -263,7 +306,7 @@ namespace GitApp
 						if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
 						{
 							NotARepo = true;
-							Branch = "Not a Repo";
+							currentBranch = "Not a Repo";
 							newNumberCommitsToPull = 0;
 							return;
 						}
@@ -280,38 +323,131 @@ namespace GitApp
 				doStatus(submodule, true);
 			}
 
-			// if we had changes, notify stuff
-			if (previousChanges.Count != newChanges.Count)
+			// find all branches
+			var branchesLines = ProcessUtils.ExecuteCmdBlocking("git branch -a --sort=-committerdate", ViewModel.CurrentDirectory).Split('\n');
+			var branches = new List<Branch>();
+			var branchMap = new Dictionary<string, Branch>();
+
+			var master = new Branch(ViewModel, "master");
+			branches.Add(master);
+			branchMap[master.Name] = master;
+
+			foreach (var branchLineRaw in branchesLines.Select(e => e.Trim()))
 			{
-				changesChanged = true;
+				var branchLine = branchLineRaw;
+
+				if (branchLine.StartsWith("remotes/origin/HEAD"))
+				{
+					continue;
+				}
+
+				var isCurrent = branchLine.StartsWith("*");
+				if (isCurrent)
+				{
+					branchLine = branchLine.Replace("*", "").Trim();
+				}
+
+				var name = branchLine.Replace("remotes/origin/", "");
+				var isRemote = branchLine.StartsWith("remotes/origin/");
+
+				if (name == currentBranch)
+				{
+					isCurrent = true;
+				}
+
+				if (branchMap.TryGetValue(name, out var existing))
+				{
+					existing.IsRemote = existing.IsRemote && isRemote;
+					existing.IsCurrentBranch = isCurrent;
+				}
+				else
+				{
+					var branch = new Branch(ViewModel, name);
+					branch.IsRemote = isRemote;
+					branch.IsCurrentBranch = isCurrent;
+
+					branches.Add(branch);
+					branchMap[name] = branch;
+				}
 			}
 
-			if (!Enumerable.SequenceEqual(submodules, Submodules))
+			var areBranchesDifferent = false;
+			if (Branches.Count != branches.Count)
 			{
-				Submodules.Clear();
-				Submodules.AddRange(submodules);
-				RaisePropertyChangedEvent(nameof(Submodules));
+				areBranchesDifferent = true;
+
+			}
+			else
+			{
+				for (int i = 0; i < branches.Count; i++)
+				{
+					if (
+						branches[i].Name != Branches[i].Name ||
+						branches[i].IsRemote != Branches[i].IsRemote ||
+						branches[i].IsCurrentBranch != Branches[i].IsCurrentBranch)
+					{
+						areBranchesDifferent = true;
+						break;
+					}
+				}
 			}
 
-			if (changesChanged)
+			Extensions.SafeBeginInvoke(() =>
 			{
-				ViewModel.GitCommit.ChangeList = newChanges.OrderBy(e => e.File).ToList();
-				ViewModel.GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
-			}
+				if (areBranchesDifferent)
+				{
 
-			// update counts
-			NumberCommitsToPull = newNumberCommitsToPull;
-			NumberCommitsToPush = newNumberCommitsToPush;
+					Branches.Clear();
+					Branches.AddRange(branches);
 
-			checkingStatus = false;
+					Branch = branches.FirstOrDefault(e => e.IsCurrentBranch) ?? branches[0];
 
-			var statusStr = status.ToString();
-			if (statusStr != lastStatus)
-			{
-				lastStatus = statusStr;
+					if (Branch != null)
+					{
+						Branches.Remove(Branch);
+						Branches.Insert(0, Branch);
+					}
+				}
 
-				ViewModel.GitLog.GetLog(ViewModel.CurrentDirectory);
-			}
+				// if we had changes, notify stuff
+				if (previousChanges.Count != newChanges.Count)
+				{
+					changesChanged = true;
+				}
+
+				if (!Enumerable.SequenceEqual(submodules, Submodules))
+				{
+					Submodules.Clear();
+					Submodules.AddRange(submodules);
+					RaisePropertyChangedEvent(nameof(Submodules));
+				}
+
+				if (changesChanged)
+				{
+					ViewModel.GitCommit.ChangeList = newChanges.OrderBy(e => e.File).ToList();
+					ViewModel.GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
+				}
+
+				// update counts
+				NumberCommitsToPull = newNumberCommitsToPull;
+				NumberCommitsToPush = newNumberCommitsToPush;
+
+				checkingStatus = false;
+
+				var statusStr = status.ToString();
+				if (statusStr != lastStatus)
+				{
+					lastStatus = statusStr;
+
+					Task.Run(() => { ViewModel.GitLog.GetLog(ViewModel.CurrentDirectory); });
+				}
+			});
+		}
+
+		//-----------------------------------------------------------------------
+		public void CreateBranch()
+		{
+			
 		}
 	}
 }

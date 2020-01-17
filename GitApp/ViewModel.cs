@@ -55,6 +55,9 @@ namespace GitApp
 				RaisePropertyChangedEvent();
 
 				ProjectName = Path.GetFileName(CurrentDirectory);
+				GitCommit.ChangeList = new List<Change>();
+				GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
+				GitCommit.SelectedChange = null;
 
 				GitStatus.CheckStatus();
 				GitLog.GetLog(m_currentDirectory);
@@ -63,14 +66,13 @@ namespace GitApp
 				RecentProjects.Remove(fullPath);
 				RecentProjects.Insert(0, fullPath);
 
-				StoreSetting("RecentProjects", RecentProjects);
-				RaisePropertyChangedEvent(nameof(RecentProjects));
+				StoreSetting("RecentProjects", RecentProjects.ToList());
 			}
 		}
 		private string m_currentDirectory;
 
 		//-----------------------------------------------------------------------
-		public List<string> RecentProjects { get; set; } = new List<string>();
+		public DeferableObservableCollection<string> RecentProjects { get; } = new DeferableObservableCollection<string>();
 
 		//-----------------------------------------------------------------------
 		public string SettingsPath = Path.GetFullPath("GitAppSettings.xml");
@@ -187,14 +189,13 @@ namespace GitApp
 				Settings = new SerializableDictionary<string, string>();
 			}
 
-			var rawRecentProjects = GetSetting<List<string>>("RecentProjects");
-			RecentProjects =
-				rawRecentProjects?
+			RecentProjects.Clear();
+			RecentProjects.AddRange(GetSetting<List<string>>("RecentProjects")?
 				.Select(e => Path.GetFullPath(e))
 				.Where(e => Directory.Exists(e))
 				.ToList()
-				?? 
-				new List<string>();
+				??
+				new List<string>());
 			CurrentDirectory = GetSetting<string>("CurrentDirectory");
 		}
 
@@ -208,6 +209,7 @@ namespace GitApp
 
 			Extensions.SafeBeginInvoke(() =>
 			{
+				CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
 				CMDLines.Add(new Line(cmd, Brushes.LimeGreen));
 			});
 
@@ -265,8 +267,11 @@ namespace GitApp
 					dir,
 					(output) =>
 					{
-						CurrentDirectory = output;
-						StoreSetting("CurrentDirectory", CurrentDirectory);
+						Extensions.SafeBeginInvoke(() => 
+						{
+							CurrentDirectory = output;
+							StoreSetting("CurrentDirectory", CurrentDirectory);
+						});
 					},
 					(error) =>
 					{
@@ -278,7 +283,9 @@ namespace GitApp
 		//-----------------------------------------------------------------------
 		public void RunArbitraryCommand(string cmd)
 		{
-			CMDLines.Add(new Line("\n------------------------------------\n", Brushes.DarkGray));
+			CMDLines.Add(new Line("", Brushes.DarkGray));
+			CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
+			CMDLines.Add(new Line("", Brushes.DarkGray));
 			CMDLines.Add(new Line(cmd, Brushes.Green));
 
 			Task.Run(() =>

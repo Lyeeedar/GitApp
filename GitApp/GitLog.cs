@@ -223,24 +223,27 @@ namespace GitApp
 					commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
 				}
 
-				Log = log;
-				RaisePropertyChangedEvent(nameof(Log));
-
-				CommitTypes = types.OrderBy(e => e).ToList();
-				RaisePropertyChangedEvent(nameof(CommitTypes));
-
-				CommitScopes = scopes.OrderBy(e => e).ToList();
-				RaisePropertyChangedEvent(nameof(CommitScopes));
-
-				if (log.Count > 0 && log[0].IsLocal)
+				Extensions.SafeBeginInvoke(() => 
 				{
-					UndoableLastCommit = log[0].Message;
-				}
-				else
-				{
-					UndoableLastCommit = null;
-				}
-				RaisePropertyChangedEvent(nameof(UndoableLastCommit));
+					Log = log;
+					RaisePropertyChangedEvent(nameof(Log));
+
+					CommitTypes = types.OrderBy(e => e).ToList();
+					RaisePropertyChangedEvent(nameof(CommitTypes));
+
+					CommitScopes = scopes.OrderBy(e => e).ToList();
+					RaisePropertyChangedEvent(nameof(CommitScopes));
+
+					if (log.Count > 0 && log[0].IsLocal)
+					{
+						UndoableLastCommit = log[0].Message;
+					}
+					else
+					{
+						UndoableLastCommit = null;
+					}
+					RaisePropertyChangedEvent(nameof(UndoableLastCommit));
+				});
 			}
 			catch (Exception e)
 			{
