@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,7 +54,20 @@ namespace GitApp
 				return;
 			}
 
-			var rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff \"" + ViewModel.GitCommit.SelectedChange.File + "\"", CurrentDirectory);
+			var changeDir = ViewModel.GitCommit.SelectedChange.Submodule != null ? ViewModel.GitCommit.SelectedChange.Submodule : CurrentDirectory;
+
+			var rawDiff = "";
+			if (ViewModel.GitCommit.SelectedChange.ChangeType == ChangeType.UNTRACKED)
+			{
+				var fullPath = Path.Combine(changeDir, ViewModel.GitCommit.SelectedChange.File);
+				var lines = File.ReadAllLines(fullPath);
+				var addLines = lines.Select(e => "+ " + e);
+				rawDiff = "@@" + ViewModel.GitCommit.SelectedChange.File + "\n" + string.Join("\n", addLines);
+			}
+			else
+			{
+				rawDiff = ProcessUtils.ExecuteCmdBlocking("git diff \"" + ViewModel.GitCommit.SelectedChange.File + "\"", changeDir);
+			}
 
 			SelectedDiff = ParseDiff(rawDiff);
 			RaisePropertyChangedEvent(nameof(SelectedDiff));
@@ -91,7 +105,7 @@ namespace GitApp
 				}
 				else if (strLine[0] == '+')
 				{
-					currentBlockBrush = ModifiedBrush;
+					currentBlockBrush = AddedBrush;
 				}
 				else if (strLine[0] == '-')
 				{
@@ -104,8 +118,14 @@ namespace GitApp
 
 				if (isDiff)
 				{
-					currentBlock.Lines.Add(strLine.Trim());
+					currentBlock.Lines.Add(strLine.TrimEnd());
 				}
+			}
+
+			if (blocks.LastOrDefault() != currentBlock && currentBlock != null)
+			{
+				currentBlock.Brush = currentBlockBrush;
+				blocks.Add(currentBlock);
 			}
 
 			var beforelines = new List<Line>();

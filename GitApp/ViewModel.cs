@@ -59,8 +59,9 @@ namespace GitApp
 				GitStatus.CheckStatus();
 				GitLog.GetLog(m_currentDirectory);
 
-				RecentProjects.Remove(m_currentDirectory);
-				RecentProjects.Insert(0, Path.GetFullPath(m_currentDirectory));
+				var fullPath = Path.GetFullPath(m_currentDirectory);
+				RecentProjects.Remove(fullPath);
+				RecentProjects.Insert(0, fullPath);
 
 				StoreSetting("RecentProjects", RecentProjects);
 				RaisePropertyChangedEvent(nameof(RecentProjects));
@@ -186,14 +187,15 @@ namespace GitApp
 				Settings = new SerializableDictionary<string, string>();
 			}
 
-			CurrentDirectory = GetSetting<string>("CurrentDirectory");
-			RecentProjects = 
-				GetSetting<List<string>>("RecentProjects")?
+			var rawRecentProjects = GetSetting<List<string>>("RecentProjects");
+			RecentProjects =
+				rawRecentProjects?
 				.Select(e => Path.GetFullPath(e))
 				.Where(e => Directory.Exists(e))
 				.ToList()
 				?? 
 				new List<string>();
+			CurrentDirectory = GetSetting<string>("CurrentDirectory");
 		}
 
 		//-----------------------------------------------------------------------
