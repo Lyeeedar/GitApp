@@ -31,6 +31,26 @@ namespace GitApp
 		public ChangeType ChangeType { get; set; }
 
 		//-----------------------------------------------------------------------
+		public string Icon
+		{
+			get
+			{
+				if (ChangeType == ChangeType.ADDED || ChangeType == ChangeType.UNTRACKED)
+				{
+					return "/Resources/Added.png";
+				}
+				else if (ChangeType == ChangeType.DELETED)
+				{
+					return "/Resources/Removed.png";
+				}
+				else
+				{
+					return "/Resources/Modified.png";
+				}
+			}
+		}
+
+		//-----------------------------------------------------------------------
 		public bool Added
 		{
 			get { return m_added; }

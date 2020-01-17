@@ -163,10 +163,10 @@
 											VerticalAlignment="Center"
 											DockPanel.Dock="Left"
 											IsChecked="{Binding Added}" />
-									<TextBlock
+									<Image
 											DockPanel.Dock="Right"
-											Text="{Binding ChangeType}"
-											Opacity="0.7" />
+											Source="{Binding Icon}" 
+											ToolTip="{Binding ChangeType}" />
 									<TextBlock
 											Text="{Binding File}" />
 								</DockPanel>
