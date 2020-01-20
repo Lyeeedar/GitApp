@@ -54,19 +54,22 @@ namespace GitApp
 				m_currentDirectory = value;
 				RaisePropertyChangedEvent();
 
-				ProjectName = Path.GetFileName(CurrentDirectory);
-				GitCommit.ChangeList = new List<Change>();
-				GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
-				GitCommit.SelectedChange = null;
+				if (value != null)
+				{
+					ProjectName = Path.GetFileName(CurrentDirectory);
+					GitCommit.ChangeList = new List<Change>();
+					GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
+					GitCommit.SelectedChange = null;
 
-				GitStatus.CheckStatus();
-				GitLog.GetLog(m_currentDirectory);
+					GitStatus.CheckStatus();
+					GitLog.GetLog(m_currentDirectory);
 
-				var fullPath = Path.GetFullPath(m_currentDirectory);
-				RecentProjects.Remove(fullPath);
-				RecentProjects.Insert(0, fullPath);
+					var fullPath = Path.GetFullPath(m_currentDirectory);
+					RecentProjects.Remove(fullPath);
+					RecentProjects.Insert(0, fullPath);
 
-				StoreSetting("RecentProjects", RecentProjects.ToList());
+					StoreSetting("RecentProjects", RecentProjects.ToList());
+				}
 			}
 		}
 		private string m_currentDirectory;
