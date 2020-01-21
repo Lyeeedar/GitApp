@@ -215,7 +215,7 @@ namespace GitApp
 						}
 						else if (output.StartsWith("Your branch is behind"))
 						{
-							var split = output.Split(new string[] { " by ", " commits" }, StringSplitOptions.RemoveEmptyEntries);
+							var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
 							var countStr = split[1];
 							var count = int.Parse(countStr);
 
