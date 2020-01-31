@@ -119,6 +119,7 @@
 
 							<Button
 								Content="New Branch"
+								Command="{Binding NewBranchCMD}"
 								Margin="5" />
 
 							<ListView

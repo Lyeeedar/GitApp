@@ -67,6 +67,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="BranchPopup.xaml.cs">
+      <DependentUpon>BranchPopup.xaml</DependentUpon>
+    </Compile>
     <Compile Include="GitCommit.cs" />
     <Compile Include="GitDiff.cs" />
     <Compile Include="GitLog.cs" />
@@ -112,6 +115,10 @@
     <Compile Include="View\ValueConverters\NullImageConverter.cs" />
     <Compile Include="View\ValueConverters\NullOrZeroConverter.cs" />
     <Compile Include="View\ValueConverters\ValueTypeConverter.cs" />
+    <Page Include="BranchPopup.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

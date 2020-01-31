@@ -82,6 +82,9 @@ namespace GitApp
 		public SerializableDictionary<string, string> Settings { get; set; }
 
 		//-----------------------------------------------------------------------
+		public Command<object> NewBranchCMD { get { return new Command<object>((obj) => { NewBranch(); }); } }
+
+		//-----------------------------------------------------------------------
 		public Command<string> ChangeDirectoryCMD { get { return new Command<string>((obj) => { ChangeDirectory(obj); }); } }
 
 		//-----------------------------------------------------------------------
@@ -313,6 +316,13 @@ namespace GitApp
 					null);
 			});
 
+		}
+
+		//-----------------------------------------------------------------------
+		public void NewBranch()
+		{
+			var popup = new BranchPopup(this);
+			popup.ShowDialog();
 		}
 
 		//-----------------------------------------------------------------------

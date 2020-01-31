@@ -1,0 +1,43 @@
+﻿<Window
+	x:Class="GitApp.BranchPopup"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:local="clr-namespace:GitApp"
+	Title="BranchPopup"
+	WindowStartupLocation="CenterOwner"
+	Width="400"
+	SizeToContent="Height">
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition
+				Height="Auto" />
+			<RowDefinition
+				Height="Auto" />
+			<RowDefinition
+				Height="Auto" />
+		</Grid.RowDefinitions>
+		<TextBlock
+			Text="Branch Name" />
+		<TextBox
+			Grid.Row="1"
+			Text="{Binding BranchName}" />
+		<DockPanel
+			LastChildFill="False"
+			Grid.Row="2">
+			<Button
+				Margin="5"
+				Width="100"
+				DockPanel.Dock="Right"
+				Click="CreateButton_Click"
+				Content="Create Branch" />
+			<Button
+				Margin="5"
+				Width="100"
+				DockPanel.Dock="Right"
+				Click="CancelButton_Click"
+				Content="Cancel" />
+		</DockPanel>
+	</Grid>
+</Window>
