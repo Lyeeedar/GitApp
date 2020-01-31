@@ -21,6 +21,33 @@ namespace GitApp
 		public bool IsCurrentBranch { get; set; }
 
 		//-----------------------------------------------------------------------
+		public int ExtraCommits { get; set; }
+
+		//-----------------------------------------------------------------------
+		public int MissingCommits { get; set; }
+
+		//-----------------------------------------------------------------------
+		public string DifferenceMessage
+		{
+			get
+			{
+				var message = "";
+
+				if (ExtraCommits > 0)
+				{
+					message += "+" + ExtraCommits + " ";
+				}
+
+				if (MissingCommits > 0)
+				{
+					message += "-" + MissingCommits + " ";
+				}
+
+				return message;
+			}
+		}
+
+		//-----------------------------------------------------------------------
 		public Command<object> SwitchToBranchCMD { get { return new Command<object>((obj) => { SwitchToBranch(); }); } }
 
 		//-----------------------------------------------------------------------
@@ -202,7 +229,7 @@ namespace GitApp
 			};
 
 			// status runner func
-			string currentBranch = null;
+			string currentBranchName = null;
 			var status = new StringBuilder();
 			Action<string, bool> doStatus = (dir, isSubmodule) =>
 			{
@@ -222,7 +249,7 @@ namespace GitApp
 						{
 							if (!isSubmodule)
 							{
-								currentBranch = output.Replace("On branch", "").Trim();
+								currentBranchName = output.Replace("On branch", "").Trim();
 							}
 						}
 						else if (output.StartsWith("Your branch is behind"))
@@ -318,7 +345,7 @@ namespace GitApp
 						if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
 						{
 							NotARepo = true;
-							currentBranch = "Not a Repo";
+							currentBranchName = "Not a Repo";
 							newNumberCommitsToPull = 0;
 							return;
 						}
@@ -367,7 +394,7 @@ namespace GitApp
 					continue;
 				}
 
-				if (name == currentBranch)
+				if (name == currentBranchName)
 				{
 					isCurrent = true;
 				}
@@ -388,6 +415,17 @@ namespace GitApp
 				}
 			}
 
+			var currentBranch = branches.FirstOrDefault(e => e.IsCurrentBranch) ?? branches[0];
+
+			foreach (var branch in branches)
+			{
+				if (!branch.IsCurrentBranch)
+				{
+					branch.ExtraCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + currentBranchName + " " + branch.Name, ViewModel.CurrentDirectory).Split('\n').Length;
+					branch.MissingCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + branch.Name + " " + currentBranchName, ViewModel.CurrentDirectory).Split('\n').Length;
+				}
+			}
+
 			var areBranchesDifferent = false;
 			if (Branches.Count != branches.Count)
 			{
@@ -401,6 +439,8 @@ namespace GitApp
 					if (
 						branches[i].Name != Branches[i].Name ||
 						branches[i].IsRemote != Branches[i].IsRemote ||
+						branches[i].ExtraCommits != Branches[i].ExtraCommits ||
+						branches[i].MissingCommits != Branches[i].MissingCommits ||
 						branches[i].IsCurrentBranch != Branches[i].IsCurrentBranch)
 					{
 						areBranchesDifferent = true;
@@ -417,7 +457,7 @@ namespace GitApp
 					Branches.Clear();
 					Branches.AddRange(branches);
 
-					Branch = branches.FirstOrDefault(e => e.IsCurrentBranch) ?? branches[0];
+					Branch = currentBranch;
 
 					if (Branch != null)
 					{
