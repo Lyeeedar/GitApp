@@ -41,8 +41,19 @@ namespace GitApp
 			{
 				try
 				{
+					var hasUncommittedChanges = ViewModel.GitCommit.ChangeList.Any(e => e.ChangeType != ChangeType.UNTRACKED);
+					if (hasUncommittedChanges)
+					{
+						ViewModel.ExecuteLoggedCommand("git stash");
+					}
+
 					ViewModel.ExecuteLoggedCommand("git pull --rebase");
 					ViewModel.ExecuteLoggedCommand("git submodule update --init --recursive --force --rebase");
+
+					if (hasUncommittedChanges)
+					{
+						ViewModel.ExecuteLoggedCommand("git stash pop");
+					}
 
 					Extensions.SafeBeginInvoke(() =>
 					{

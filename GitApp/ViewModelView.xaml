@@ -408,6 +408,8 @@
 				IsEnabled="{Binding GitPull.PullInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
 				Visibility="{Binding GitStatus.NumberCommitsToPull, Converter={local:NullOrZeroConverter}, ConverterParameter=Not}"
 				Style="{StaticResource ButtonBorder}"
+				ToolTip="{Binding GitStatus.PullMessage}"
+				ToolTipService.ShowDuration="999999999"
 				MouseLeftButtonDown="PullClick">
 				<DockPanel>
 					<Image

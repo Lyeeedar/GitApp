@@ -77,6 +77,18 @@ namespace GitApp
 		private int m_numberCommitsToPull;
 
 		//-----------------------------------------------------------------------
+		public string PullMessage
+		{
+			get { return m_pullMessage; }
+			set
+			{
+				m_pullMessage = value;
+				RaisePropertyChangedEvent();
+			}
+		}
+		private string m_pullMessage;
+
+		//-----------------------------------------------------------------------
 		public int NumberCommitsToPush
 		{
 			get { return m_numberCommitsToPush; }
@@ -219,7 +231,7 @@ namespace GitApp
 							var countStr = split[1];
 							var count = int.Parse(countStr);
 
-							newNumberCommitsToPull = count;
+							newNumberCommitsToPull += count;
 						}
 						else if (output.StartsWith("Your branch is ahead of"))
 						{
@@ -227,7 +239,7 @@ namespace GitApp
 							var countStr = split[1];
 							var count = int.Parse(countStr);
 
-							newNumberCommitsToPush = count;
+							newNumberCommitsToPush += count;
 						}
 						else if (output.Trim().StartsWith("modified:"))
 						{
@@ -271,8 +283,8 @@ namespace GitApp
 							var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
 							var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
 
-							newNumberCommitsToPull = int.Parse(split[1]);
-							newNumberCommitsToPush = int.Parse(split[0]);
+							newNumberCommitsToPull += int.Parse(split[1]);
+							newNumberCommitsToPush += int.Parse(split[0]);
 
 							preparedToReadDivergence = false;
 						}
@@ -436,6 +448,17 @@ namespace GitApp
 				// update counts
 				NumberCommitsToPull = newNumberCommitsToPull;
 				NumberCommitsToPush = newNumberCommitsToPush;
+
+				if (NumberCommitsToPull > 0)
+				{
+					var pullMessage = "";
+					pullMessage += ProcessUtils.ExecuteCmdBlocking("git log --pretty=%B ..origin/master", ViewModel.CurrentDirectory);
+					pullMessage += "\n";
+					pullMessage += ProcessUtils.ExecuteCmdBlocking("git submodule foreach git log --pretty=%B ..origin/master", ViewModel.CurrentDirectory);
+					pullMessage = string.Join("\n", pullMessage.Split('\n').Where(e => !string.IsNullOrWhiteSpace(e) && !e.StartsWith("Entering")));
+
+					PullMessage = pullMessage;
+				}
 
 				checkingStatus = false;
 
