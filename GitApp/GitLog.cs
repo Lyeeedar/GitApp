@@ -217,10 +217,20 @@ namespace GitApp
 				}
 
 				var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
-				lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-				foreach (var line in lines)
+				if (rawUnpushedLog.StartsWith("Could not find a tracked remote branch"))
 				{
-					commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
+					foreach (var commit in commitsMap.Values)
+					{
+						commit.IsLocal = true;
+					}
+				}
+				else
+				{
+					lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+					foreach (var line in lines)
+					{
+						commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
+					}
 				}
 
 				Extensions.SafeBeginInvoke(() => 
@@ -253,6 +263,5 @@ namespace GitApp
 				});
 			}
 		}
-
 	}
 }
