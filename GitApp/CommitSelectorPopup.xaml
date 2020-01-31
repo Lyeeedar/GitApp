@@ -10,6 +10,13 @@
 	Width="800">
 	<Grid
 		x:Name="Root">
+		<Grid.RowDefinitions>
+			<RowDefinition
+				Height="*" />
+			<RowDefinition
+				Height="Auto" />
+		</Grid.RowDefinitions>
+		
 		<ListView
 			ItemsSource="{Binding Commits}">
 			<ListView.ItemTemplate>
@@ -33,6 +40,7 @@
 		</ListView>
 
 		<DockPanel
+			Grid.Row="1"
 			LastChildFill="False">
 
 			<Button
