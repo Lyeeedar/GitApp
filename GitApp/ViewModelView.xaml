@@ -479,6 +479,25 @@
 					Opacity="0.7"
 					Text="No Changes" />
 			</Border>
+
+			<Border
+				IsEnabled="{Binding GitPush.PushInProgress, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+				Visibility="{Binding GitStatus.Branch.IsRemote, Converter={local:ValueTypeConverter}, ConverterParameter=Not}"
+				Style="{StaticResource ButtonBorder}"
+				MouseLeftButtonDown="PublishBranchClick">
+				<DockPanel>
+					<Image
+						Margin="10"
+						DockPanel.Dock="Left"
+						Source="/Resources/Push.png"
+						Width="16"
+						Height="16" />
+					<TextBlock
+						Margin="5"
+						VerticalAlignment="Center"
+						Text="Publish Branch" />
+				</DockPanel>
+			</Border>
 		</Grid>
 
 		<TabControl

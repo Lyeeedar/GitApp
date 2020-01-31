@@ -374,7 +374,7 @@ namespace GitApp
 
 				if (branchMap.TryGetValue(name, out var existing))
 				{
-					existing.IsRemote = existing.IsRemote && isRemote;
+					existing.IsRemote = existing.IsRemote || isRemote;
 					existing.IsCurrentBranch = isCurrent;
 				}
 				else
