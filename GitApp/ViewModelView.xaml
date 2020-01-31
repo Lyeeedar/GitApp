@@ -149,15 +149,15 @@
 											<TextBlock
 												DockPanel.Dock="Right"
 												Margin="5"
-												Visibility="{Binding IsRemote, Converter={local:ValueTypeConverter}}"
-												Text="REMOTE"
+												Visibility="{Binding IsCurrentBranch, Converter={local:ValueTypeConverter}}"
+												Foreground="Green"
+												Text="CURRENT"
 												Opacity="0.7" />
 											<TextBlock
 												DockPanel.Dock="Right"
 												Margin="5"
-												Visibility="{Binding IsCurrentBranch, Converter={local:ValueTypeConverter}}"
-												Foreground="Green"
-												Text="CURRENT"
+												Visibility="{Binding IsRemote, Converter={local:ValueTypeConverter}}"
+												Text="REMOTE"
 												Opacity="0.7" />
 											<TextBlock
 												Margin="5"
