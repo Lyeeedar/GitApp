@@ -75,5 +75,58 @@ namespace GitApp
 				});
 			});
 		}
+
+		//-----------------------------------------------------------------------
+		public void PublishBranch(string CurrentDirectory)
+		{
+			if (PushInProgress || ViewModel.GitPull.PullInProgress)
+			{
+				return;
+			}
+
+			PushInProgress = true;
+			RaisePropertyChangedEvent(nameof(PushInProgress));
+
+			ViewModel.CMDLines.Add(new Line("------------------------------------", Brushes.DarkGray));
+			ViewModel.CMDLines.Add(new Line("Button publish branch", Brushes.SkyBlue));
+
+			Task.Run(() =>
+			{
+				try
+				{
+					ViewModel.ExecuteLoggedCommand("git push --set-upstream origin " + ViewModel.GitStatus.Branch.Name);
+
+					Extensions.SafeBeginInvoke(() =>
+					{
+						ViewModel.ToastNotifier.ShowSuccess("Publish complete");
+					});
+				}
+				catch (Exception ex)
+				{
+					if (ex.Message.StartsWith("Everything "))
+					{
+						Extensions.SafeBeginInvoke(() =>
+						{
+							ViewModel.ToastNotifier.ShowSuccess("Push complete");
+						});
+					}
+					else
+					{
+						Extensions.SafeBeginInvoke(() =>
+						{
+							ViewModel.ToastNotifier.ShowError(ex.Message);
+						});
+					}
+				}
+
+				Extensions.SafeBeginInvoke(() =>
+				{
+					PushInProgress = false;
+					RaisePropertyChangedEvent(nameof(PushInProgress));
+
+					ViewModel.GitStatus.CheckStatus();
+				});
+			});
+		}
 	}
 }

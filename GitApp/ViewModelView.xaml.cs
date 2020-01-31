@@ -46,6 +46,12 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		private void PublishBranchClick(object sender, MouseButtonEventArgs e)
+		{
+			GitViewModel.GitPush.PublishBranch(GitViewModel.CurrentDirectory);
+		}
+
+		//-----------------------------------------------------------------------
 		private void ArbitraryCMDKeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.Key == Key.Enter)
