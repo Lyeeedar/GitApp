@@ -421,8 +421,8 @@ namespace GitApp
 			{
 				if (!branch.IsCurrentBranch)
 				{
-					branch.ExtraCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + currentBranchName + " " + branch.Name, ViewModel.CurrentDirectory).Split('\n').Length;
-					branch.MissingCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + branch.Name + " " + currentBranchName, ViewModel.CurrentDirectory).Split('\n').Length;
+					branch.ExtraCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + currentBranchName + " " + branch.Name, ViewModel.CurrentDirectory).Split('\n').Count(e => !string.IsNullOrWhiteSpace(e));
+					branch.MissingCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + branch.Name + " " + currentBranchName, ViewModel.CurrentDirectory).Split('\n').Count(e => !string.IsNullOrWhiteSpace(e));
 				}
 			}
 

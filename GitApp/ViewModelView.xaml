@@ -173,6 +173,7 @@
 												Command="{Binding SwitchToBranchCMD}"
 												Margin="5"
 												Content="Checkout" />
+											
 											<TextBlock
 												Grid.Column="3"
 												Margin="5"
@@ -180,6 +181,19 @@
 												Foreground="Green"
 												Text="CURRENT"
 												Opacity="0.7" />
+
+											<Grid.ContextMenu>
+												<ContextMenu>
+													<MenuItem
+														Command="{Binding ViewModel.GitMerge.CherryPickCMD}"
+														CommandParameter="{Binding Name}"
+														Header="Cherry pick commits from this branch" />
+													<MenuItem
+														Command="{Binding ViewModel.GitMerge.RebaseCMD}"
+														CommandParameter="{Binding Name}"
+														Header="Rebase with the commits from this branch" />
+												</ContextMenu>
+											</Grid.ContextMenu>
 										</Grid>
 									</DataTemplate>
 								</ListView.ItemTemplate>
