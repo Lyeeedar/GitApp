@@ -150,6 +150,9 @@ namespace GitApp
 		public GitStatus GitStatus { get; }
 
 		//-----------------------------------------------------------------------
+		public GitMerge GitMerge { get; }
+
+		//-----------------------------------------------------------------------
 		public ViewModel()
 		{
 			ToastNotifier = new Notifier(cfg =>
@@ -173,6 +176,7 @@ namespace GitApp
 			GitCommit = new GitCommit(this);
 			GitDiff = new GitDiff(this);
 			GitStatus = new GitStatus(this);
+			GitMerge = new GitMerge(this);
 
 			if (File.Exists(SettingsPath))
 			{

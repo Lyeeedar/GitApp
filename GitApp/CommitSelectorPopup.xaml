@@ -1,0 +1,50 @@
+﻿<Window
+	x:Class="GitApp.CommitSelectorPopup"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:local="clr-namespace:GitApp"
+	Title="CommitSelectorPopup"
+	Height="450"
+	Width="800">
+	<Grid
+		x:Name="Root">
+		<ListView
+			ItemsSource="{Binding Commits}">
+			<ListView.ItemTemplate>
+				<DataTemplate>
+					<DockPanel>
+						<CheckBox
+							Visibility="{Binding DataContext.CanSelect, ElementName=Root, Converter={local:ValueTypeConverter}}"
+							Margin="10"
+							IsChecked="{Binding Selected}"
+							DockPanel.Dock="Left" />
+						<TextBlock
+							Margin="10"
+							Text="{Binding Hash}"
+							DockPanel.Dock="Left" />
+						<TextBlock
+							Margin="10"
+							Text="{Binding Message}" />
+					</DockPanel>
+				</DataTemplate>
+			</ListView.ItemTemplate>
+		</ListView>
+
+		<DockPanel
+			LastChildFill="False">
+
+			<Button
+				DockPanel.Dock="Right"
+				Click="PerformButton_Click"
+				Content="Perform" />
+
+			<Button
+				DockPanel.Dock="Right"
+				Click="CancelButton_Click"
+				Content="Cancel" />
+
+		</DockPanel>
+	</Grid>
+</Window>
