@@ -49,6 +49,9 @@ namespace GitApp
 		}
 
 		//-----------------------------------------------------------------------
+		public HashSet<string> Commits { get; set; }
+
+		//-----------------------------------------------------------------------
 		public Command<object> SwitchToBranchCMD { get { return new Command<object>((obj) => { SwitchToBranch(); }); } }
 
 		//-----------------------------------------------------------------------
@@ -209,8 +212,8 @@ namespace GitApp
 			var submodules = Repo.Submodules.Select(e => e.Path);
 
 			// store old versions to check if we changed
-			var newNumberCommitsToPush = 0;
-			var newNumberCommitsToPull = 0;
+			var newNumberCommitsToPush = Repo.Head.TrackingDetails.AheadBy ?? 0;
+			var newNumberCommitsToPull = Repo.Head.TrackingDetails.BehindBy ?? 0;
 
 			var previousChanges = new Dictionary<string, Change>();
 			foreach (var change in ViewModel.GitCommit.ChangeList)
@@ -272,11 +275,21 @@ namespace GitApp
 				var branch = new Branch(ViewModel, repoBranch.FriendlyName);
 				branch.IsCurrentBranch = repoBranch.IsCurrentRepositoryHead;
 				branch.IsRemote = repoBranch.IsTracking;
+				branch.Commits = new HashSet<string>(repoBranch.Commits.Select(e => e.Sha));
 				branches.Add(branch);
 
 				if (branch.IsCurrentBranch)
 				{
 					currentBranch = branch;
+				}
+			}
+
+			foreach (var branch in branches)
+			{
+				if (branch.Name != Repo.Head.FriendlyName)
+				{
+					branch.ExtraCommits = branch.Commits.Where(e => !currentBranch.Commits.Contains(e)).Count();
+					branch.MissingCommits = currentBranch.Commits.Where(e => !branch.Commits.Contains(e)).Count();
 				}
 			}
 
