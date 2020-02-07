@@ -69,6 +69,12 @@ namespace GitApp
 		{
 			ViewModel.ExecuteLoggedCommand("git checkout " + Name);
 		}
+
+		//-----------------------------------------------------------------------
+		public string BranchSignature()
+		{
+			return Name + IsRemote + IsCurrentBranch + DifferenceMessage;
+		}
 	}
 
 	public class GitStatus : NotifyPropertyChanged
@@ -269,9 +275,19 @@ namespace GitApp
 
 			// status runner func
 			var branches = new List<Branch>();
+			var addedBranches = new HashSet<string>();
 			Branch currentBranch = null;
 			foreach (var repoBranch in Repo.Branches)
 			{
+				if (
+					repoBranch.FriendlyName == "origin/HEAD" || 
+					addedBranches.Contains(repoBranch.FriendlyName) || 
+					addedBranches.Contains(repoBranch.FriendlyName.Replace("origin/", "")))
+				{
+					continue;
+				}
+				addedBranches.Add(repoBranch.FriendlyName);
+
 				var branch = new Branch(ViewModel, repoBranch.FriendlyName);
 				branch.IsCurrentBranch = repoBranch.IsCurrentRepositoryHead;
 				branch.IsRemote = repoBranch.IsTracking;
@@ -293,7 +309,11 @@ namespace GitApp
 				}
 			}
 
-			var areBranchesDifferent = branches.Count != Branches.Count;
+			var areBranchesDifferent = 
+				branches.Count != Branches.Count || 
+				branches
+					.Zip(Branches, (e1, e2) => new Tuple<Branch, Branch>(e1, e2))
+					.Any(e => e.Item1.BranchSignature() != e.Item2.BranchSignature());
 
 			// find all branches
 
