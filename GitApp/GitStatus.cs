@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LibGit2Sharp;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -156,6 +157,10 @@ namespace GitApp
 		public ViewModel ViewModel { get; }
 
 		//-----------------------------------------------------------------------
+		public Repository Repo { get; set; }
+		private string RepoPath { get; set; }
+
+		//-----------------------------------------------------------------------
 		public GitStatus(ViewModel viewModel)
 		{
 			ViewModel = viewModel;
@@ -167,6 +172,16 @@ namespace GitApp
 			};
 			timer.Interval = 3000;
 			timer.Start();
+		}
+
+		//-----------------------------------------------------------------------
+		public void ClearStatus()
+		{
+			NumberCommitsToPull = 0;
+			NumberCommitsToPush = 0;
+			Submodules.Clear();
+			Branches.Clear();
+			Branch = null;
 		}
 
 		//-----------------------------------------------------------------------
@@ -182,17 +197,16 @@ namespace GitApp
 			}
 			checkingStatus = true;
 
-			// find out what submodules we have
-			var submodules = new List<string>();
-			var submoduleLines = ProcessUtils.ExecuteCmdBlocking("git submodule status", ViewModel.CurrentDirectory).Split('\n');
-			foreach (var submodule in submoduleLines)
+			var startTime = DateTime.Now;
+
+			if (RepoPath != ViewModel.CurrentDirectory)
 			{
-				if (!string.IsNullOrWhiteSpace(submodule))
-				{
-					var split = submodule.Trim().Split(' ')[1];
-					submodules.Add(Path.Combine(ViewModel.CurrentDirectory, split));
-				}
+				Repo?.Dispose();
+				Repo = new Repository(ViewModel.CurrentDirectory);
+				RepoPath = ViewModel.CurrentDirectory;
 			}
+
+			var submodules = Repo.Submodules.Select(e => e.Path);
 
 			// store old versions to check if we changed
 			var newNumberCommitsToPush = 0;
@@ -228,232 +242,52 @@ namespace GitApp
 				}
 			};
 
-			// status runner func
-			string currentBranchName = null;
-			var status = new StringBuilder();
-			Action<string, bool> doStatus = (dir, isSubmodule) =>
+			foreach (var file in Repo.RetrieveStatus())
 			{
-				var preparedToReadDivergence = false;
-				var preparedToReadUntracked = false;
-				ProcessUtils.ExecuteCmdBlocking("git fetch", dir);
-				ProcessUtils.ExecuteCmd(
-					"git status",
-					dir,
-					(output) =>
-					{
-						status.AppendLine(output);
-
-						NotARepo = false;
-
-						if (output.StartsWith("On branch"))
-						{
-							if (!isSubmodule)
-							{
-								currentBranchName = output.Replace("On branch", "").Trim();
-							}
-						}
-						else if (output.StartsWith("Your branch is behind"))
-						{
-							var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
-							var countStr = split[1];
-							var count = int.Parse(countStr);
-
-							newNumberCommitsToPull += count;
-						}
-						else if (output.StartsWith("Your branch is ahead of"))
-						{
-							var split = output.Split(new string[] { " by ", " commit" }, StringSplitOptions.RemoveEmptyEntries);
-							var countStr = split[1];
-							var count = int.Parse(countStr);
-
-							newNumberCommitsToPush += count;
-						}
-						else if (output.Trim().StartsWith("modified:"))
-						{
-							var path = output.Replace("modified:", "").Trim();
-							var change = new Change(path, ChangeType.MODIFIED, ViewModel.GitCommit);
-							if (isSubmodule)
-							{
-								change.Submodule = dir;
-							}
-
-							addChange(change);
-						}
-						else if (output.Trim().StartsWith("added:"))
-						{
-							var path = output.Replace("added:", "").Trim();
-							var change = new Change(path, ChangeType.ADDED, ViewModel.GitCommit);
-							if (isSubmodule)
-							{
-								change.Submodule = dir;
-							}
-
-							addChange(change);
-						}
-						else if (output.Trim().StartsWith("deleted:"))
-						{
-							var path = output.Replace("deleted:", "").Trim();
-							var change = new Change(path, ChangeType.DELETED, ViewModel.GitCommit);
-							if (isSubmodule)
-							{
-								change.Submodule = dir;
-							}
-
-							addChange(change);
-						}
-						else if (output.StartsWith("Your branch and 'origin/master' have diverged"))
-						{
-							preparedToReadDivergence = true;
-						}
-						else if (preparedToReadDivergence && output.StartsWith("and have"))
-						{
-							var line = output.Replace("and have ", "").Replace("different commits each, respectively.", "").Trim();
-							var split = line.Split(new string[] { " and " }, StringSplitOptions.RemoveEmptyEntries);
-
-							newNumberCommitsToPull += int.Parse(split[1]);
-							newNumberCommitsToPush += int.Parse(split[0]);
-
-							preparedToReadDivergence = false;
-						}
-						else if (output.StartsWith("Untracked files:"))
-						{
-							preparedToReadUntracked = true;
-						}
-						else if (preparedToReadUntracked)
-						{
-							try
-							{
-								if (File.Exists(Path.Combine(dir, output.Trim())))
-								{
-									var path = output.Trim();
-									var change = new Change(path, ChangeType.UNTRACKED, ViewModel.GitCommit);
-									if (isSubmodule)
-									{
-										change.Submodule = dir;
-									}
-
-									addChange(change);
-								}
-							}
-							catch (Exception ex) { }
-						}
-					},
-					(error) =>
-					{
-						status.AppendLine(error);
-
-						if (error.StartsWith("fatal: Not a git repository (or any of the parent directories)") || error.StartsWith("Force kill"))
-						{
-							NotARepo = true;
-							currentBranchName = "Not a Repo";
-							newNumberCommitsToPull = 0;
-							return;
-						}
-
-						NotARepo = false;
-					},
-					2000);
-			};
-
-			// run the func on root and all submodules
-			doStatus(ViewModel.CurrentDirectory, false);
-			foreach (var submodule in submodules)
-			{
-				doStatus(submodule, true);
+				if (file.State == FileStatus.DeletedFromWorkdir || file.State == FileStatus.DeletedFromIndex)
+				{
+					addChange(new Change(file.FilePath, ChangeType.DELETED, ViewModel.GitCommit));
+				}
+				else if (file.State == FileStatus.NewInIndex)
+				{
+					addChange(new Change(file.FilePath, ChangeType.ADDED, ViewModel.GitCommit));
+				}
+				else if (
+					file.State == FileStatus.ModifiedInWorkdir || file.State == FileStatus.ModifiedInIndex ||
+					file.State == FileStatus.RenamedInIndex || file.State == FileStatus.RenamedInWorkdir)
+				{
+					addChange(new Change(file.FilePath, ChangeType.MODIFIED, ViewModel.GitCommit));
+				}
+				else if (file.State == FileStatus.NewInWorkdir)
+				{
+					addChange(new Change(file.FilePath, ChangeType.UNTRACKED, ViewModel.GitCommit));
+				}
 			}
+
+			// status runner func
+			var branches = new List<Branch>();
+			Branch currentBranch = null;
+			foreach (var repoBranch in Repo.Branches)
+			{
+				var branch = new Branch(ViewModel, repoBranch.FriendlyName);
+				branch.IsCurrentBranch = repoBranch.IsCurrentRepositoryHead;
+				branch.IsRemote = repoBranch.IsTracking;
+				branches.Add(branch);
+
+				if (branch.IsCurrentBranch)
+				{
+					currentBranch = branch;
+				}
+			}
+
+			var areBranchesDifferent = branches.Count != Branches.Count;
 
 			// find all branches
-			var branchesLines = ProcessUtils.ExecuteCmdBlocking("git branch -a --sort=-committerdate", ViewModel.CurrentDirectory).Split('\n');
-			var branches = new List<Branch>();
-			var branchMap = new Dictionary<string, Branch>();
-
-			var master = new Branch(ViewModel, "master");
-			branches.Add(master);
-			branchMap[master.Name] = master;
-
-			foreach (var branchLineRaw in branchesLines.Select(e => e.Trim()))
-			{
-				var branchLine = branchLineRaw;
-
-				if (branchLine.StartsWith("remotes/origin/HEAD"))
-				{
-					continue;
-				}
-
-				var isCurrent = branchLine.StartsWith("*");
-				if (isCurrent)
-				{
-					branchLine = branchLine.Replace("*", "").Trim();
-				}
-
-				var name = branchLine.Replace("remotes/origin/", "");
-				var isRemote = branchLine.StartsWith("remotes/origin/");
-
-				if (string.IsNullOrWhiteSpace(name))
-				{
-					continue;
-				}
-
-				if (name == currentBranchName)
-				{
-					isCurrent = true;
-				}
-
-				if (branchMap.TryGetValue(name, out var existing))
-				{
-					existing.IsRemote = existing.IsRemote || isRemote;
-					existing.IsCurrentBranch = isCurrent;
-				}
-				else
-				{
-					var branch = new Branch(ViewModel, name);
-					branch.IsRemote = isRemote;
-					branch.IsCurrentBranch = isCurrent;
-
-					branches.Add(branch);
-					branchMap[name] = branch;
-				}
-			}
-
-			var currentBranch = branches.FirstOrDefault(e => e.IsCurrentBranch) ?? branches[0];
-
-			foreach (var branch in branches)
-			{
-				if (!branch.IsCurrentBranch)
-				{
-					branch.ExtraCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + currentBranchName + " " + branch.Name, ViewModel.CurrentDirectory).Split('\n').Count(e => !string.IsNullOrWhiteSpace(e));
-					branch.MissingCommits = ProcessUtils.ExecuteCmdBlocking("git cherry " + branch.Name + " " + currentBranchName, ViewModel.CurrentDirectory).Split('\n').Count(e => !string.IsNullOrWhiteSpace(e));
-				}
-			}
-
-			var areBranchesDifferent = false;
-			if (Branches.Count != branches.Count)
-			{
-				areBranchesDifferent = true;
-
-			}
-			else
-			{
-				for (int i = 0; i < branches.Count; i++)
-				{
-					if (
-						branches[i].Name != Branches[i].Name ||
-						branches[i].IsRemote != Branches[i].IsRemote ||
-						branches[i].ExtraCommits != Branches[i].ExtraCommits ||
-						branches[i].MissingCommits != Branches[i].MissingCommits ||
-						branches[i].IsCurrentBranch != Branches[i].IsCurrentBranch)
-					{
-						areBranchesDifferent = true;
-						break;
-					}
-				}
-			}
 
 			Extensions.SafeBeginInvoke(() =>
 			{
 				if (areBranchesDifferent)
 				{
-
 					Branches.Clear();
 					Branches.AddRange(branches);
 
@@ -502,7 +336,7 @@ namespace GitApp
 
 				checkingStatus = false;
 
-				var statusStr = status.ToString();
+				var statusStr = Repo.Head.Tip.Sha;
 				if (statusStr != lastStatus)
 				{
 					lastStatus = statusStr;
@@ -510,6 +344,10 @@ namespace GitApp
 					Task.Run(() => { ViewModel.GitLog.GetLog(ViewModel.CurrentDirectory); });
 				}
 			});
+
+			var endTime = DateTime.Now;
+			var diff = endTime - startTime;
+			Console.WriteLine("Status complete in " + diff.TotalSeconds + " seconds");
 		}
 
 		//-----------------------------------------------------------------------
