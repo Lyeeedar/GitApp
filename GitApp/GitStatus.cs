@@ -369,7 +369,7 @@ namespace GitApp
 
 				checkingStatus = false;
 
-				var statusStr = Repo.Head.Tip.Sha;
+				var statusStr = Repo.Head.Tip.Sha + Repo.Head.TrackedBranch.Tip.Sha;
 				if (statusStr != lastStatus)
 				{
 					lastStatus = statusStr;
