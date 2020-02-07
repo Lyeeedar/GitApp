@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace GitApp
 {
@@ -46,7 +47,61 @@ namespace GitApp
 
 			if (selector.ShowDialog() == true)
 			{
-				ViewModel.ExecuteLoggedCommand("git rebase " + branch);
+				var hasUncommittedChanges = ViewModel.GitCommit.ChangeList.Any(e => e.ChangeType != ChangeType.UNTRACKED);
+				if (hasUncommittedChanges)
+				{
+					ViewModel.ExecuteLoggedCommand("git stash");
+				}
+
+				var repo = ViewModel.GitStatus.Repo;
+
+				var config = repo.Config;
+				var author = config.BuildSignature(DateTimeOffset.Now);
+				
+				var sourceBranch = repo.Branches.First(e => e.FriendlyName == branch);
+
+				var identity = new LibGit2Sharp.Identity(author.Name, author.Email);
+				var options = new LibGit2Sharp.RebaseOptions();
+
+				var status = repo.Rebase.Start(sourceBranch, sourceBranch.TrackedBranch, repo.Head, identity, options);
+
+				while (true)
+				{
+					if (status.Status == LibGit2Sharp.RebaseStatus.Complete)
+					{
+						ViewModel.CMDLines.Add(new Line("Rebase complete", Brushes.Green));
+						break;
+					}
+					else if (status.Status == LibGit2Sharp.RebaseStatus.Conflicts)
+					{
+						var dialog = new ConflictsDialog(ViewModel);
+						var result = dialog.ShowDialog();
+
+						if (result == false)
+						{
+							repo.Rebase.Abort();
+							break;
+						}
+					}
+					else if (status.Status == LibGit2Sharp.RebaseStatus.Stop)
+					{
+						var dialog = new ConflictsDialog(ViewModel);
+						var result = dialog.ShowDialog();
+
+						if (result == false)
+						{
+							repo.Rebase.Abort();
+							break;
+						}
+					}
+
+					repo.Rebase.Continue(identity, options);
+				}
+
+				if (hasUncommittedChanges)
+				{
+					ViewModel.ExecuteLoggedCommand("git stash pop");
+				}
 			}
 		}
 	}

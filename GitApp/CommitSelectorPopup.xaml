@@ -44,11 +44,13 @@
 			LastChildFill="False">
 
 			<Button
+				Margin="5"
 				DockPanel.Dock="Right"
 				Click="PerformButton_Click"
 				Content="Perform" />
 
 			<Button
+				Margin="5"
 				DockPanel.Dock="Right"
 				Click="CancelButton_Click"
 				Content="Cancel" />
