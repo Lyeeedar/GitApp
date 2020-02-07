@@ -76,12 +76,16 @@
     <Compile Include="BranchPopup.xaml.cs">
       <DependentUpon>BranchPopup.xaml</DependentUpon>
     </Compile>
+    <Compile Include="CommitSelectorPopup.xaml.cs">
+      <DependentUpon>CommitSelectorPopup.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ConflictsDialog.xaml.cs">
       <DependentUpon>ConflictsDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="GitCommit.cs" />
     <Compile Include="GitDiff.cs" />
     <Compile Include="GitLog.cs" />
+    <Compile Include="GitMerge.cs" />
     <Compile Include="GitPull.cs" />
     <Compile Include="GitPush.cs" />
     <Compile Include="GitStatus.cs" />
@@ -127,6 +131,10 @@
     <Page Include="BranchPopup.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="CommitSelectorPopup.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="ConflictsDialog.xaml">
       <SubType>Designer</SubType>

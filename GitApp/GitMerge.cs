@@ -63,7 +63,7 @@ namespace GitApp
 				var identity = new LibGit2Sharp.Identity(author.Name, author.Email);
 				var options = new LibGit2Sharp.RebaseOptions();
 
-				var status = repo.Rebase.Start(sourceBranch, sourceBranch.TrackedBranch, repo.Head, identity, options);
+				var status = repo.Rebase.Start(repo.Head, sourceBranch.TrackedBranch, sourceBranch, identity, options);
 
 				while (true)
 				{
