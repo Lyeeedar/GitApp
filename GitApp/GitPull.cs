@@ -41,6 +41,8 @@ namespace GitApp
 			{
 				try
 				{
+					var repo = ViewModel.GitStatus.Repo;
+
 					var hasUncommittedChanges = ViewModel.GitCommit.ChangeList.Any(e => e.ChangeType != ChangeType.UNTRACKED);
 					if (hasUncommittedChanges)
 					{

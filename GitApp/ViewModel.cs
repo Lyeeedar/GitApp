@@ -61,6 +61,7 @@ namespace GitApp
 					GitCommit.RaisePropertyChangedEvent(nameof(GitCommit.ChangeList));
 					GitCommit.SelectedChange = null;
 
+					GitStatus.ClearStatus();
 					GitStatus.CheckStatus();
 					GitLog.GetLog(m_currentDirectory);
 

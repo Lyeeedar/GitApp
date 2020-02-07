@@ -167,53 +167,35 @@ namespace GitApp
 		{
 			try
 			{
-				var rawLog = ProcessUtils.ExecuteCmdBlocking("git log", CurrentDirectory);
-				var lines = rawLog.Split('\n');
-
 				var log = new List<Commit>();
 				var commitsMap = new Dictionary<string, Commit>();
 
 				var types = new HashSet<string>();
 				var scopes = new HashSet<string>();
 
-				Commit currentCommit = null;
-				foreach (var line in lines)
+				var commitLog = ViewModel.GitStatus.Repo.Commits.ToList();
+				foreach (var commitRaw in commitLog)
 				{
-					if (line.StartsWith("commit "))
-					{
-						if (currentCommit != null)
-						{
-							currentCommit.Message = currentCommit.Message.Trim();
-							log.Add(currentCommit);
-							commitsMap[currentCommit.ID] = currentCommit;
+					var commit = new Commit(ViewModel);
+					commit.ID = commitRaw.Sha;
+					commit.Message = commitRaw.Message;
 
-							var matches = SemanticCommitRegex.Matches(currentCommit.Message);
-							foreach (Match match in matches)
-							{
-								var groups = match.Groups;
-								var type = groups["Type"].Value.Trim();
-								var scope = groups["Scope"].Value.Trim();
+					log.Add(commit);
+					commitsMap[commit.ID] = commit;
 
-								types.Add(type);
-								scopes.Add(scope);
-							}
-						}
+					var matches = SemanticCommitRegex.Matches(commit.Message);
+					foreach (Match match in matches)
+					{
+						var groups = match.Groups;
+						var type = groups["Type"].Value.Trim();
+						var scope = groups["Scope"].Value.Trim();
 
-						currentCommit = new Commit(ViewModel);
-						currentCommit.ID = line.Replace("commit", "").Trim();
+						types.Add(type);
+						scopes.Add(scope);
 					}
-					else if (line.StartsWith("Author: "))
-					{
-						currentCommit.Author = line.Replace("Author: ", "").Trim();
-					}
-					else if (line.StartsWith("Date: "))
-					{
-						currentCommit.Date = line.Replace("Date: ", "").Trim();
-					}
-					else
-					{
-						currentCommit.Message += line + "\n";
-					}
+
+					commit.Author = commitRaw.Author.Name;
+					commit.Date = commitRaw.Author.When.DateTime.ToLocalTime().ToShortDateString();
 				}
 
 				var rawUnpushedLog = ProcessUtils.ExecuteCmdBlocking("git cherry", CurrentDirectory);
@@ -226,7 +208,7 @@ namespace GitApp
 				}
 				else
 				{
-					lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+					var lines = rawUnpushedLog.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 					foreach (var line in lines)
 					{
 						commitsMap[line.Split('+')[1].Trim()].IsLocal = true;
